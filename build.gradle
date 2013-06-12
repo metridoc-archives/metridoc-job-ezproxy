@@ -1,15 +1,170 @@
+import groovy.json.JsonSlurper
+import wslite.http.auth.HTTPBasicAuthorization
+import wslite.rest.ContentType
+import wslite.rest.RESTClient
+import wslite.rest.RESTClientException
+
 apply plugin: "groovy"
 apply plugin: "application"
+apply plugin: "maven"
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"
+project.version = "0.1-SNAPSHOT"
+project.group = "com.github.metridoc"
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.github.groovy-wslite:groovy-wslite:0.7.2'
+    }
+}
 
 repositories {
     mavenCentral()
+    maven {
+        url "http://jcenter.bintray.com/"
+    }
 }
 
 dependencies {
-    compile 'org.codehaus.groovy:groovy-all:2.1.3'
+    compile('org.codehaus.groovy:groovy-all:2.0.8')
+    compile 'com.googlecode.metridoc:metridoc-job-core:0.5.RC4'
     testCompile 'org.spockframework:spock-core:0.7-groovy-2.0'
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '1.6'
+    gradleVersion = '1.5'
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task packageJavadoc(type: Jar, dependsOn: 'groovydoc') {
+    from groovydoc.destinationDir
+    classifier = 'javadoc'
+}
+
+artifacts {
+    archives sourcesJar
+    archives(packageJavadoc) {
+        type = 'javadoc'
+    }
+}
+
+install {
+    repositories.mavenInstaller { installer ->
+        configurePom(pom)
+    }
+}
+
+if (project.properties.containsKey("bintrayUsername")) {
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                repository(
+                        url: "https://api.bintray.com/maven/$bintrayOwner/$bintrayPackage/$bintrayArtifact"
+                ) {
+                    authentication(
+                            userName: bintrayUsername,
+                            password: bintrayPassword
+                    )
+                }
+
+                configurePom(pom)
+            }
+        }
+    }
+}
+
+def configurePom(pom) {
+    pom.whenConfigured { pomToConfigure ->
+        pomToConfigure.dependencies.find { dep -> dep.artifactId == 'groovy' }.scope = 'provided'
+    }
+
+    pom.project {
+        name = "$bintrayArtifact"
+        artifactId = "$bintrayArtifact"
+        description = project.description
+        url = "https://github.com/$githubOrg/$bintrayArtifact"
+        organization {
+            name = "$githubOrg"
+            url = "$githubOrg"
+        }
+        licenses {
+            license {
+                name 'Educational Community License'
+                //noinspection GroovyAssignabilityCheck
+                url 'http://opensource.org/licenses/ECL-2.0'
+                distribution 'repo'
+            }
+        }
+        scm {
+            url = "https://github.com/$githubOrg/${bintrayArtifact}.git"
+            connection = "https://github.com/$githubOrg/${bintrayArtifact}.git"
+            developerConnection = "https://github.com/$githubOrg/${bintrayArtifact}.git"
+        }
+        developers {
+            developer {
+                id = 'tbarker'
+                name = 'Thomas Barker'
+                email = 'tbarker@pobox.upenn.edu'
+            }
+        }
+    }
+}
+
+task uploadToBintray(dependsOn: ["prepareForBintrayUpload", "publishBintrayPackages"])
+
+task prepareForBintrayUpload << {
+
+    if (version.contains("SNAPSHOT")) {
+        println "bintray does not support SNAPSHOTs, skipping upload to bintray"
+        uploadArchives.enabled = false
+        publishBintrayPackages.enabled = false
+        return
+    }
+
+    if (!project.hasProperty("bintrayUsername")) {
+        println "bintray credentials not setup, skipping upload to bintray"
+        uploadArchives.enabled = false
+        publishBintrayPackages.enabled = false
+        return
+    }
+
+    def json = new URL("https://api.bintray.com/packages/$bintrayOwner/$bintrayPackage/$bintrayArtifact").text
+    def slurper = new JsonSlurper()
+    def versions = slurper.parseText(json).versions
+    def versionAlreadyDeployed = versions.contains(version)
+
+    if (versionAlreadyDeployed) {
+        println "version $version has already been deployed to bintray, skipping upload to bintray"
+        uploadArchives.enabled = false
+        publishBintrayPackages.enabled = false
+    }
+}
+
+task publishBintrayPackages(dependsOn: "uploadArchives") << {
+    def client = new RESTClient("https://api.bintray.com/")
+    client.authorization = new HTTPBasicAuthorization(bintrayUsername, bintrayPassword)
+    try {
+        def response = client.post(
+                path: "/content/upennlib/$bintrayOwner/$bintrayArtifact/$version/publish",
+                accept: ContentType.JSON
+        ) {
+            type ContentType.JSON
+            charset "utf-8"
+            text ""
+        }
+        println response.getContentAsString()
+    }
+    catch (RESTClientException ex) {
+        println ""
+        println "COULD NOT PUBLISH"
+        println ex.response.getContentAsString()
+        throw ex
+    }
 }
