@@ -17,6 +17,7 @@ class EzproxyIterator extends FileIterator {
     String fileName
     //one based
     int currentRow = 0
+    int assertionErrors = 0
 
     @Lazy(soft = true)
     Reader reader = { new InputStreamReader(inputStream, ezEncoding) }()
@@ -30,17 +31,19 @@ class EzproxyIterator extends FileIterator {
         if (lineIterator.hasNext()) {
             def next = lineIterator.next()
             Map result
-            if (ezParser instanceof Closure) {
+            try {
                 result = ezParser.call(next) as Map
+                assert result : "the result should not be empty or null"
             }
-            else {
-                result = ezParser.parse(next) as Map
+            catch (AssertionError error) {
+                assertionErrors++
+                log.warn("there was an assertion error at line $currentRow for file $fileName: $error.message")
+                return computeNext()
             }
             result.fileName = fileName
             result.lineNumber = currentRow
             return result
-        }
-        else {
+        } else {
             endOfData()
         }
     }

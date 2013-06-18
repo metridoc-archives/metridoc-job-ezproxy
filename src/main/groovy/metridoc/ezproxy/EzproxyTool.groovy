@@ -30,12 +30,9 @@ class EzproxyTool extends RunnableTool {
     public static final DOI_PREFIX_PATTERN = "10."
     public static final DOI_PROPERTY_PATTERN = "doi=10."
     public static final DOI_FULL_PATTERN = Pattern.compile(/10\.\d+\//)
-
-    String ezEncoding = "utf-8"
-
-    Closure<Map> ezParser = {String line ->
+    public static final Closure<Map> DEFAULT_EZ_PARSER = { String line ->
         def data = line.split(/\|\|/)
-        assert data.size() >= 14: "there should be at least 14 data fields"
+        assert data.size() >= 14: "there should be at least 14 data fields but was only ${data.size()}"
         def result = [:]
         result.ipAddress = data[0]
         result.city = data[1]
@@ -49,12 +46,18 @@ class EzproxyTool extends RunnableTool {
         return result as Map
     }
 
+    String ezEncoding = "utf-8"
+
+    Closure<Map> ezParser = DEFAULT_EZ_PARSER
+
     Closure<Map> ezTransformer
     String ezFileFilter = DEFAULT_FILE_FILTER
     File ezDirectory
     File ezFile
     IteratorWriter ezWriter = new TableIteratorWriter()
     def writerResponse
+    int assertionErrors = 0
+    int successfulRecords = 0
 
     @Override
     def configure() {
@@ -75,15 +78,29 @@ class EzproxyTool extends RunnableTool {
                 )
 
                 def filteredIterator = Iterators.toFilteredAndTransformedIterator(ezIterator) { Map record ->
-                    convertApacheNullToNull(record)
-                    addDateValues(record)
-                    addHosts(record)
-                    addDoi(record)
-                    ezTransformer ? ezTransformer.call(record) : record
+                    try {
+                        convertApacheNullToNull(record)
+                        addDateValues(record)
+                        addHosts(record)
+                        addDoi(record)
+                        def response = ezTransformer ? ezTransformer.call(record) : record
+                        successfulRecords++
+
+                        return response
+                    }
+                    catch (AssertionError error) {
+                        log.warn "There was an assertion error at line $record.lineNumber for file $record.fileName: ${error.message}"
+                        assertionErrors++
+                        return null
+                    }
                 }
 
                 ezWriter.rowIterator = filteredIterator
                 writerResponse = ezWriter.write()
+                assertionErrors += ezIterator.assertionErrors
+                if(assertionErrors) {
+                    log.warn "while iterating over ${assertionErrors + successfulRecords} records there were ${assertionErrors} errors"
+                }
                 camelTool.close()
             }
         }
@@ -132,16 +149,18 @@ class EzproxyTool extends RunnableTool {
             validateUrl(url)
             record.urlHost = new URL(url).getHost()
         }
-
-        def refUrl = record.refUrl as String
-        if (notNull(refUrl)) {
-            validateUrl(refUrl)
-            record.refUrl = new URL(refUrl).getHost()
-        }
     }
 
     protected boolean notNull(item) {
-        item && item.trim() != APACHE_NULL
+        if(item == null) {
+            return false
+        }
+
+        if(item instanceof String) {
+            item.trim() && item.trim() != APACHE_NULL
+        }
+
+        return true
     }
 
     void validateUrl(String url) {
