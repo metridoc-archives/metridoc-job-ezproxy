@@ -28,22 +28,17 @@ class EzproxyIterator extends FileIterator {
     protected Map computeNext() {
         currentRow++
         if (lineIterator.hasNext()) {
-            try {
-                def next = lineIterator.next()
-                Map result
-                if (ezParser instanceof Closure) {
-                    result = ezParser.call(next) as Map
-                }
-                else {
-                    result = ezParser.parse(next) as Map
-                }
-                result.fileName = fileName
-                result.lineNumber = currentRow
-                return result
+            def next = lineIterator.next()
+            Map result
+            if (ezParser instanceof Closure) {
+                result = ezParser.call(next) as Map
             }
-            catch (Throwable throwable) {
-                log.warn "Could not parse line $next\n", throwable
+            else {
+                result = ezParser.parse(next) as Map
             }
+            result.fileName = fileName
+            result.lineNumber = currentRow
+            return result
         }
         else {
             endOfData()

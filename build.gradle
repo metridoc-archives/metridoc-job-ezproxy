@@ -30,7 +30,7 @@ repositories {
 
 dependencies {
     compile('org.codehaus.groovy:groovy-all:2.0.8')
-    compile 'com.googlecode.metridoc:metridoc-job-core:0.5.RC6'
+    compile 'com.googlecode.metridoc:metridoc-job-core:0.5.RC7'
     testCompile 'org.spockframework:spock-core:0.7-groovy-2.0'
     testCompile 'org.slf4j:slf4j-simple:1.6.6'
 }
