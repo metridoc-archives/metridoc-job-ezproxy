@@ -163,7 +163,7 @@ class EzproxyTool extends RunnableTool {
         return true
     }
 
-    void validateUrl(String url) {
+    protected void validateUrl(String url) {
         try {
             new URL(url).toURI()
         }
@@ -245,7 +245,7 @@ class EzproxyTool extends RunnableTool {
         return ezFile
     }
 
-    private static String extractDoi(String url) {
+    protected String extractDoi(String url) {
         String result = null
         int idxBegin = url.indexOf(DOI_PROPERTY_PATTERN)
         boolean
@@ -293,7 +293,7 @@ class EzproxyTool extends RunnableTool {
         return result
     }
 
-    private static boolean hasDoi(Map record) {
+    protected boolean hasDoi(Map record) {
         String url = record.url
         int indexOfDoiPrefix = url.indexOf(DOI_PREFIX_PATTERN)
         if (indexOfDoiPrefix > -1) {
