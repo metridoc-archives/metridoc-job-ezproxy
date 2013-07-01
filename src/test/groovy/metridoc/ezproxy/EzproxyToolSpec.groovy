@@ -267,6 +267,26 @@ class EzproxyToolSpec extends Specification {
         testData()
     }
 
+    def "test full blown data, but use a different processed extension"() {
+        given: "a file with ezproxy data"
+        File file = folder.newFile("ezproxy.test.gz")
+        new GZIPOutputStream(file.newOutputStream()).withWriter("utf-8") { Writer writer ->
+            writer.write(data)
+        }
+
+        and: "an EzproxyTool that is set to consume from that file"
+        tool.ezFile = file
+
+        and: "a custom extension"
+        tool.processedExtension = "foo"
+
+        when: "the file is consumed"
+        tool.execute()
+
+        then: "the response is filled with appropriate data"
+        testData()
+    }
+
     static Table executeTool(EzproxyTool tool) {
         tool.execute()
         Table response = tool.ezWriter.response
@@ -286,5 +306,7 @@ class EzproxyToolSpec extends Specification {
         assert 2 == tool.assertionErrors
         assert 10 == tool.successfulRecords
         assert "10.1021/jo0601009" == table.row(2).doi
+
+        assert folder.root.listFiles().find {it.name.endsWith(tool.processedExtension)}
     }
 }

@@ -54,6 +54,7 @@ class EzproxyTool extends RunnableTool {
     String ezFileFilter = DEFAULT_FILE_FILTER
     File ezDirectory
     File ezFile
+    String processedExtension = "processed"
     IteratorWriter ezWriter = new TableIteratorWriter()
     def writerResponse
     int assertionErrors = 0
@@ -187,11 +188,11 @@ class EzproxyTool extends RunnableTool {
     boolean acceptFile(File file) {
         def fileName = file.name
 
-        if (fileName.endsWith(".processed")) {
+        if (fileName.endsWith(".$processedExtension")) {
             return false
         }
 
-        def processedFileName = "${fileName}.processed"
+        def processedFileName = "${fileName}.$processedExtension"
         def processedFile = new File(file.parent, processedFileName)
 
         if (processedFile.exists()) {
@@ -203,7 +204,7 @@ class EzproxyTool extends RunnableTool {
 
     protected File finishProcessingFile(File file) {
         def fileName = file.name
-        def result = new File(file.parent, "${fileName}.processed")
+        def result = new File(file.parent, "${fileName}.$processedExtension")
         boolean created = result.createNewFile()
         if (!created) {
             log.warn "Could not create processed file $result, it was probably already there"
