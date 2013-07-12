@@ -3,10 +3,11 @@ package metridoc.ezproxy
 import groovy.util.logging.Slf4j
 import metridoc.core.tools.CamelTool
 import metridoc.core.tools.RunnableTool
-import metridoc.iterators.Iterators
 import metridoc.utils.ApacheLogParser
 import metridoc.writers.IteratorWriter
 import metridoc.writers.TableIteratorWriter
+import metridoc.writers.WriteResponse
+import metridoc.writers.WrittenRecordStat
 import org.apache.camel.component.file.GenericFile
 import org.apache.camel.component.file.GenericFileFilter
 
@@ -56,9 +57,9 @@ class EzproxyTool extends RunnableTool {
     File ezFile
     String processedExtension = "processed"
     IteratorWriter ezWriter = new TableIteratorWriter()
-    def writerResponse
     int assertionErrors = 0
     int successfulRecords = 0
+    WriteResponse writerResponse
 
     @Override
     def configure() {
@@ -73,34 +74,21 @@ class EzproxyTool extends RunnableTool {
                 }
                 def ezIterator = new EzproxyIterator(
                         inputStream: inputStream,
-                        fileName: ezFile.name,
+                        file: ezFile,
                         ezParser: ezParser,
                         ezEncoding: ezEncoding
                 )
 
-                def filteredIterator = Iterators.toFilteredAndTransformedIterator(ezIterator) { Map record ->
-                    try {
-                        convertApacheNullToNull(record)
-                        addDateValues(record)
-                        addHosts(record)
-                        addDoi(record)
-                        def response = ezTransformer ? ezTransformer.call(record) : record
-                        successfulRecords++
-
-                        return response
-                    }
-                    catch (AssertionError error) {
-                        log.warn "There was an assertion error at line $record.lineNumber for file $record.fileName: ${error.message}"
-                        assertionErrors++
-                        return null
-                    }
+                writerResponse = ezWriter.write(ezIterator)
+                int total = 0
+                def stats = writerResponse.aggregateStats
+                stats.values().each {
+                    total += it
                 }
-
-                ezWriter.rowIterator = filteredIterator
-                writerResponse = ezWriter.write()
-                assertionErrors += ezIterator.assertionErrors
+                assertionErrors = stats[WrittenRecordStat.Status.INVALID]
+                successfulRecords = stats[WrittenRecordStat.Status.WRITTEN]
                 if(assertionErrors) {
-                    log.warn "while iterating over ${assertionErrors + successfulRecords} records there were ${assertionErrors} errors"
+                    log.warn "while iterating over ${total} records there were ${stats[WrittenRecordStat.Status.INVALID]} errors"
                 }
                 camelTool.close()
             }

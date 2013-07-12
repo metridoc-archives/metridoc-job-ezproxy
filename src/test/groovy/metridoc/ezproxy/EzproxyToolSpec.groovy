@@ -1,7 +1,6 @@
 package metridoc.ezproxy
 
 import com.google.common.collect.Table
-import org.apache.commons.lang.ObjectUtils
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Specification
@@ -289,23 +288,21 @@ class EzproxyToolSpec extends Specification {
 
     static Table executeTool(EzproxyTool tool) {
         tool.execute()
-        Table response = tool.ezWriter.response
+        Table response = tool.writerResponse as Table
         response
     }
 
     void testData() {
-        Table table = tool.ezWriter.response
-        assert 10 == table.rowKeySet().size()
+        Table table = tool.writerResponse as Table
+        assert 11 == table.rowKeySet().size()
         def row0 = table.row(0)
-        assert ObjectUtils.NULL == row0.patronId
+        assert "-" == row0.patronId
         def row9 = table.row(9)
         assert "foo" == row9.patronId
         assert "124.193.247.47" == row0.ipAddress
         assert "56.110.98.79" == row9.ipAddress
-        assert "global.factiva.com" == row9.urlHost
-        assert 2 == tool.assertionErrors
-        assert 10 == tool.successfulRecords
-        assert "10.1021/jo0601009" == table.row(2).doi
+        assert 1 == tool.assertionErrors
+        assert 11 == tool.successfulRecords
 
         assert folder.root.listFiles().find {it.name.endsWith(tool.processedExtension)}
     }

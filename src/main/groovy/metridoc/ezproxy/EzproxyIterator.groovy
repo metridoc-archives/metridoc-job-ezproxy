@@ -2,6 +2,7 @@ package metridoc.ezproxy
 
 import groovy.util.logging.Slf4j
 import metridoc.iterators.FileIterator
+import metridoc.iterators.Record
 import org.apache.commons.io.LineIterator
 
 /**
@@ -14,10 +15,10 @@ class EzproxyIterator extends FileIterator {
 
     Closure ezParser
     String ezEncoding = "utf-8"
-    String fileName
+    //so we can get the line if there is a failure
+    String currentLine
     //one based
     int currentRow = 0
-    int assertionErrors = 0
 
     @Lazy(soft = true)
     Reader reader = { new InputStreamReader(inputStream, ezEncoding) }()
@@ -25,26 +26,30 @@ class EzproxyIterator extends FileIterator {
     @Lazy
     LineIterator lineIterator = { new LineIterator(getReader()) }()
 
+    @SuppressWarnings("GroovyVariableNotAssigned")
     @Override
-    protected Map computeNext() {
+    protected Record computeNext() {
         currentRow++
+
         if (lineIterator.hasNext()) {
-            def next = lineIterator.next()
+            currentLine = lineIterator.next()
             Map result
+            def record = new Record()
             try {
-                result = ezParser.call(next) as Map
-                assert result : "the result should not be empty or null"
+                result = ezParser.call(currentLine) as Map
+                assert result: "the result should not be empty or null"
             }
-            catch (AssertionError error) {
-                assertionErrors++
-                log.warn("there was an assertion error at line $currentRow for file $fileName: $error.message")
-                return computeNext()
+            catch (Throwable throwable) {
+                record.throwable = throwable
             }
+            result = result ?: [:]
             result.fileName = fileName
             result.lineNumber = currentRow
-            return result
-        } else {
-            endOfData()
+            result.originalLine = currentLine
+            record.body = result
+            return record
         }
+
+        return endOfData()
     }
 }
