@@ -7,8 +7,8 @@ import wslite.rest.RESTClientException
 apply plugin: "groovy"
 apply plugin: "application"
 apply plugin: "maven"
-sourceCompatibility = "1.7"
-targetCompatibility = "1.7"
+sourceCompatibility = "1.6"
+targetCompatibility = "1.6"
 project.version = "0.1-SNAPSHOT"
 project.group = "com.github.metridoc"
 
@@ -23,6 +23,7 @@ buildscript {
 
 repositories {
     mavenCentral()
+    mavenLocal()
     maven {
         url "http://jcenter.bintray.com/"
     }
@@ -30,9 +31,10 @@ repositories {
 
 dependencies {
     compile('org.codehaus.groovy:groovy-all:2.0.8')
-    compile 'com.googlecode.metridoc:metridoc-job-core:0.5.RC7'
+    compile 'com.googlecode.metridoc:metridoc-job-core:0.5.RC9-SNAPSHOT'
     testCompile 'org.spockframework:spock-core:0.7-groovy-2.0'
     testCompile 'org.slf4j:slf4j-simple:1.6.6'
+    testCompile 'org.springframework:spring-jdbc:3.2.3.RELEASE'
 }
 
 task wrapper(type: Wrapper) {
@@ -83,7 +85,7 @@ if (project.properties.containsKey("bintrayUsername")) {
 
 def configurePom(pom) {
     pom.whenConfigured { pomToConfigure ->
-        pomToConfigure.dependencies.find { dep -> dep.artifactId == 'groovy' }.scope = 'provided'
+        pomToConfigure.dependencies.find { dep -> dep.artifactId == 'groovy-all' }.scope = 'provided'
     }
 
     pom.project {
