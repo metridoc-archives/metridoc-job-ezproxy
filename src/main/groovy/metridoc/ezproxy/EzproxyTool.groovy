@@ -28,9 +28,7 @@ class EzproxyTool extends RunnableTool {
     public static final Closure<String> EZ_DIRECTORY_DOES_NOT_EXISTS = { "ezproxy directory ${it} does not exist" as String }
     public static final Closure<String> EZ_FILE_DOES_NOT_EXIST = { "ezproxy file $it does not exist" as String }
     public static final APACHE_NULL = "-"
-    public static final DOI_PREFIX_PATTERN = "10."
-    public static final DOI_PROPERTY_PATTERN = "doi=10."
-    public static final DOI_FULL_PATTERN = Pattern.compile(/10\.\d+\//)
+
     public static final Closure<Map> DEFAULT_EZ_PARSER = { String line ->
         def data = line.split(/\|\|/)
         assert data.size() >= 14: "there should be at least 14 data fields but was only ${data.size()}"
@@ -51,7 +49,6 @@ class EzproxyTool extends RunnableTool {
 
     Closure<Map> ezParser = DEFAULT_EZ_PARSER
 
-    Closure<Map> ezTransformer
     String ezFileFilter = DEFAULT_FILE_FILTER
     File ezDirectory
     File ezFile
@@ -123,20 +120,6 @@ class EzproxyTool extends RunnableTool {
             record.proxyYear = calendar.get(Calendar.YEAR)
             record.proxyMonth = calendar.get(Calendar.MONTH)
             record.proxyDay = calendar.get(Calendar.DAY_OF_MONTH)
-        }
-    }
-
-    protected void addDoi(Map record) {
-        if(hasDoi(record)) {
-            record.doi = extractDoi(record.url)
-        }
-    }
-
-    protected void addHosts(Map record) {
-        def url = record.url as String
-        if (notNull(url)) {
-            validateUrl(url)
-            record.urlHost = new URL(url).getHost()
         }
     }
 
@@ -234,71 +217,7 @@ class EzproxyTool extends RunnableTool {
         return ezFile
     }
 
-    protected String extractDoi(String url) {
-        String result = null
-        int idxBegin = url.indexOf(DOI_PROPERTY_PATTERN)
-        boolean
-        if (idxBegin > -1) {
-            String doiBegin = url.substring(idxBegin + 4)
-            int idxEnd = doiBegin.indexOf('&') > 0 ? doiBegin.indexOf('&') : doiBegin.size()
-            result = URLDecoder.decode(URLDecoder.decode(doiBegin.substring(0, idxEnd), "utf-8"), "utf-8") //double encoding
-        } else {
-            idxBegin = url.indexOf(DOI_PREFIX_PATTERN)
-            if (idxBegin > -1) {
-                String doiBegin = url.substring(idxBegin)
-                //find index of 2nd slash
-                int slashInd = doiBegin.indexOf("/");
-                slashInd = slashInd > -1 ? doiBegin.indexOf("/", slashInd + 1) : -1;
-                int idxEnd = doiBegin.indexOf('?')
-                if (idxEnd == -1) {
-                    //case where doi is buried in embedded url
-                    doiBegin = URLDecoder.decode(doiBegin, "utf-8")
-                    idxEnd = doiBegin.indexOf('&')
-                    slashInd = slashInd > -1 ? doiBegin.indexOf("/", slashInd + 1) : -1; // compute again in case of encoding
-                }
-                if (idxEnd > -1) {
-                    if (slashInd > -1) {
-                        idxEnd = [slashInd, idxEnd].min()
-                    }
-                } else if (slashInd > -1) {
-                    idxEnd = slashInd
-                } else {
-                    idxEnd = doiBegin.size()
-                }
-                result = doiBegin.substring(0, idxEnd)
-            }
-        }
 
-        if (result && result.contains("/")) {
-            int startIndex = result.indexOf("/")
-            String suffix = result.substring(startIndex + 1, result.length())
-            int nextSlash = suffix.indexOf("/")
-            if (nextSlash > -1) {
-                result = result.substring(0, startIndex + nextSlash + 1)
-            }
-        } else {
-            result = null //must be garbage
-        }
-        return result
-    }
-
-    protected boolean hasDoi(Map record) {
-        String url = record.url
-        int indexOfDoiPrefix = url.indexOf(DOI_PREFIX_PATTERN)
-        if (indexOfDoiPrefix > -1) {
-            def doiAtStart = url.substring(indexOfDoiPrefix)
-            //noinspection GroovyUnusedCatchParameter
-            try {
-                doiAtStart = URLDecoder.decode(doiAtStart, "utf-8")
-            } catch (IllegalArgumentException ex) {
-
-            }
-            def doiMatcher = DOI_FULL_PATTERN.matcher(doiAtStart)
-            return doiMatcher.lookingAt()
-        }
-
-        return false
-    }
 }
 
 

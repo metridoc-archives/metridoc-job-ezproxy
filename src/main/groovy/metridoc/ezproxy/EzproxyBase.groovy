@@ -31,7 +31,7 @@ abstract class EzproxyBase extends MetridocRecordEntity {
     @Column(name = "file_name", nullable = false)
     @Index(name = "idx_file_name")
     String fileName
-    @Column(name = "file_name", nullable = false)
+    @Column(name = "url_hosts", nullable = false)
     @Index(name = "idx_ezproxy_id_url_host")
     String urlHost
 
