@@ -31,7 +31,7 @@ repositories {
 
 dependencies {
     compile('org.codehaus.groovy:groovy-all:2.0.8')
-    compile 'com.googlecode.metridoc:metridoc-job-core:0.5.RC9-SNAPSHOT'
+    compile 'com.googlecode.metridoc:metridoc-job-core:0.5.RC9'
     testCompile 'org.spockframework:spock-core:0.7-groovy-2.0'
     testCompile 'org.slf4j:slf4j-simple:1.6.6'
     testCompile 'org.springframework:spring-jdbc:3.2.3.RELEASE'
@@ -69,7 +69,7 @@ if (project.properties.containsKey("bintrayUsername")) {
         repositories {
             mavenDeployer {
                 repository(
-                        url: "https://api.bintray.com/maven/$bintrayOwner/$bintrayPackage/$bintrayArtifact"
+                        url: "https://api.bintray.com/maven/upennlib/metridoc/metridoc-job-ezproxy"
                 ) {
                     authentication(
                             userName: bintrayUsername,
@@ -92,10 +92,10 @@ def configurePom(pom) {
         name = "$bintrayArtifact"
         artifactId = "$bintrayArtifact"
         description = project.description
-        url = "https://github.com/$githubOrg/$bintrayArtifact"
+        url = "https://github.com/metridoc/metridoc-job-ezproxy.git"
         organization {
-            name = "$githubOrg"
-            url = "$githubOrg"
+            name = "metridoc"
+            url = "https://github.com/metridoc/"
         }
         licenses {
             license {
@@ -106,9 +106,9 @@ def configurePom(pom) {
             }
         }
         scm {
-            url = "https://github.com/$githubOrg/${bintrayArtifact}.git"
-            connection = "https://github.com/$githubOrg/${bintrayArtifact}.git"
-            developerConnection = "https://github.com/$githubOrg/${bintrayArtifact}.git"
+            url = "https://github.com/metridoc/metridoc-job-ezproxy.git"
+            connection = "https://github.com/metridoc/metridoc-job-ezproxy.git"
+            developerConnection = "https://github.com/metridoc/metridoc-job-ezproxy.git"
         }
         developers {
             developer {
@@ -138,7 +138,7 @@ task prepareForBintrayUpload << {
         return
     }
 
-    def json = new URL("https://api.bintray.com/packages/$bintrayOwner/$bintrayPackage/$bintrayArtifact").text
+    def json = new URL("https://api.bintray.com/packages/upennlib/metridoc/metridoc-job-ezproxy").text
     def slurper = new JsonSlurper()
     def versions = slurper.parseText(json).versions
     def versionAlreadyDeployed = versions.contains(version)
@@ -155,7 +155,7 @@ task publishBintrayPackages(dependsOn: "uploadArchives") << {
     client.authorization = new HTTPBasicAuthorization(bintrayUsername, bintrayPassword)
     try {
         def response = client.post(
-                path: "/content/upennlib/$bintrayOwner/$bintrayArtifact/$version/publish",
+                path: "/content/upennlib/metridoc/metridoc-job-ezproxy/$version/publish",
                 accept: ContentType.JSON
         ) {
             type ContentType.JSON
