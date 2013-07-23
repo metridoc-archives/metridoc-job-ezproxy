@@ -3,6 +3,7 @@ package metridoc.ezproxy
 import groovy.util.logging.Slf4j
 import metridoc.iterators.FileIterator
 import metridoc.iterators.Record
+import metridoc.utils.ApacheLogParser
 import org.apache.commons.io.LineIterator
 
 /**
@@ -12,6 +13,7 @@ import org.apache.commons.io.LineIterator
  */
 @Slf4j
 class EzproxyIterator extends FileIterator {
+    public static final transient APACHE_NULL = "-"
 
     Closure ezParser
     String ezEncoding = "utf-8"
@@ -38,6 +40,9 @@ class EzproxyIterator extends FileIterator {
             try {
                 result = ezParser.call(currentLine) as Map
                 assert result: "the result should not be empty or null"
+                convertApacheNullToNull(result)
+                addUrlHosts(result)
+                addProxyDate(result)
             }
             catch (Throwable throwable) {
                 record.throwable = throwable
@@ -51,5 +56,37 @@ class EzproxyIterator extends FileIterator {
         }
 
         return endOfData()
+    }
+
+    protected addUrlHosts(Map result) {
+        String url = result.url
+        assert url : "url is null or empty"
+        validateUrl(url)
+        result.urlHost = new URL(result.url).host
+    }
+
+    protected addProxyDate(Map result) {
+        def proxyDate = result.proxyDate
+        assert proxyDate : "proxyDate is not in result or is null"
+        if(proxyDate instanceof String) {
+            result.proxyDate = ApacheLogParser.parseLogDate(proxyDate)
+        }
+    }
+
+    protected void convertApacheNullToNull(Map map) {
+        map.each {key, value ->
+            if(value == APACHE_NULL) {
+                map[key] = null
+            }
+        }
+    }
+
+    protected void validateUrl(String url) {
+        try {
+            new URL(url)
+        }
+        catch (MalformedURLException ex) {
+            throw new AssertionError(ex)
+        }
     }
 }

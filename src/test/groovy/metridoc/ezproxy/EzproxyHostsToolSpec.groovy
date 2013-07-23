@@ -8,20 +8,20 @@ import spock.lang.Timeout
 
 import java.util.zip.GZIPOutputStream
 
-import static metridoc.ezproxy.EzproxyTool.*
+import static EzproxyHostsTool.*
 
 /**
  * Created with IntelliJ IDEA on 6/14/13
  * @author Tommy Barker
  */
-class EzproxyToolSpec extends Specification {
+class EzproxyHostsToolSpec extends Specification {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder()
-    EzproxyTool tool
+    EzproxyHostsTool tool
 
     def setup() {
-        tool = new EzproxyTool(ezDirectory: folder.root)
+        tool = new EzproxyHostsTool(ezDirectory: folder.root)
     }
 
     @Timeout(5)
@@ -239,7 +239,7 @@ class EzproxyToolSpec extends Specification {
         File file = folder.newFile("ezproxy.test")
         file.write(data, "utf-8")
 
-        and: "an EzproxyTool that is set to consume from that file"
+        and: "an EzproxyHostsTool that is set to consume from that file"
         tool.ezFile = file
 
         when: "the file is consumed"
@@ -256,7 +256,7 @@ class EzproxyToolSpec extends Specification {
             writer.write(data)
         }
 
-        and: "an EzproxyTool that is set to consume from that file"
+        and: "an EzproxyHostsTool that is set to consume from that file"
         tool.ezFile = file
 
         when: "the file is consumed"
@@ -273,7 +273,7 @@ class EzproxyToolSpec extends Specification {
             writer.write(data)
         }
 
-        and: "an EzproxyTool that is set to consume from that file"
+        and: "an EzproxyHostsTool that is set to consume from that file"
         tool.ezFile = file
 
         and: "a custom extension"
@@ -286,7 +286,7 @@ class EzproxyToolSpec extends Specification {
         testData()
     }
 
-    static Table executeTool(EzproxyTool tool) {
+    static Table executeTool(EzproxyHostsTool tool) {
         tool.execute()
         Table response = tool.writerResponse as Table
         response

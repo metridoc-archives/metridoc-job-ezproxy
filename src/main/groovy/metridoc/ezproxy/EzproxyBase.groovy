@@ -3,6 +3,8 @@ package metridoc.ezproxy
 import metridoc.entities.MetridocRecordEntity
 import metridoc.iterators.Record
 import metridoc.utils.ApacheLogParser
+import org.hibernate.Session
+import org.hibernate.SessionFactory
 import org.hibernate.annotations.Index
 import org.slf4j.LoggerFactory
 
@@ -15,8 +17,8 @@ import javax.persistence.MappedSuperclass
  */
 @MappedSuperclass
 abstract class EzproxyBase extends MetridocRecordEntity {
-    public static final transient APACHE_NULL = "-"
     public static final transient DEFAULT_VARCHAR_LENGTH = 255
+    public static final transient NATURAL_KEY_CACHE = "naturalKeyCache"
     @Column(name = "proxy_date", nullable = false)
     Date proxyDate
     @Column(name = "proxy_month", nullable = false)
@@ -31,19 +33,34 @@ abstract class EzproxyBase extends MetridocRecordEntity {
     @Column(name = "file_name", nullable = false)
     @Index(name = "idx_file_name")
     String fileName
-    @Column(name = "url_hosts", nullable = false)
+    @Column(name = "url_host", nullable = false)
     @Index(name = "idx_ezproxy_id_url_host")
     String urlHost
+    @Column(name = "line_number", nullable = false)
+    Integer lineNumber
+    transient Set<String> naturalKeyCache = []
+    transient SessionFactory sessionFactory
 
     @Override
     boolean acceptRecord(Record record) {
-        record.body.containsKey("ezproxy_id")
+        record.body.ezproxyId &&
+                record.body.urlHost
     }
 
     @Override
     void populate(Record record) {
+        def cache = record.getHeader(NATURAL_KEY_CACHE, Set)
+        if(cache) {
+            naturalKeyCache = cache
+        }
+        else {
+            cache = [] as Set<String>
+            record.headers[NATURAL_KEY_CACHE] = cache
+            naturalKeyCache = cache
+        }
+        sessionFactory = record.getHeader("sessionFactory", SessionFactory)
         addDateValues(record.body)
-        truncateProperties(record, )
+        truncateProperties(record, "ezproxyId", "fileName", "urlHost")
         super.populate(record)
     }
 
@@ -52,7 +69,9 @@ abstract class EzproxyBase extends MetridocRecordEntity {
         propertyNames.each { propertyName ->
             def propertyValue = record.body[propertyName]
             if (propertyValue && propertyValue instanceof String) {
-                record.body[propertyName] = propertyValue.substring(0, DEFAULT_VARCHAR_LENGTH)
+                if(propertyValue.size() > DEFAULT_VARCHAR_LENGTH) {
+                    record.body[propertyName] = propertyValue.substring(0, DEFAULT_VARCHAR_LENGTH)
+                }
             }
         }
     }
@@ -75,7 +94,7 @@ abstract class EzproxyBase extends MetridocRecordEntity {
             def calendar = new GregorianCalendar()
             calendar.setTime(record.proxyDate as Date)
             record.proxyYear = calendar.get(Calendar.YEAR)
-            record.proxyMonth = calendar.get(Calendar.MONTH)
+            record.proxyMonth = calendar.get(Calendar.MONTH) + 1
             record.proxyDay = calendar.get(Calendar.DAY_OF_MONTH)
         }
     }
@@ -87,14 +106,14 @@ abstract class EzproxyBase extends MetridocRecordEntity {
         }
 
         if (item instanceof String) {
-            return item.trim() && item.trim() != APACHE_NULL
+            return item.trim()
         }
         return true
     }
 
     @Override
     void validate() {
-        ["fileName", "urlHost", "proxyDate", "ezproxyId", "proxyMonth", "proxyDay", "proxyYear"].each { property ->
+        ["lineNumber", "fileName", "urlHost", "proxyDate", "ezproxyId", "proxyMonth", "proxyDay", "proxyYear"].each { property ->
             def value = this."$property"
             if (value instanceof Integer) {
                 assert value != null: "$property cannot be null"
@@ -107,4 +126,17 @@ abstract class EzproxyBase extends MetridocRecordEntity {
             }
         }
     }
+
+    @Override
+    boolean shouldSave() {
+        String naturalKey = createNaturalKey()
+        if(naturalKeyCache.add(naturalKey)) {
+            return !alreadyExists()
+        }
+
+        return false
+    }
+
+    abstract String createNaturalKey()
+    abstract boolean alreadyExists()
 }

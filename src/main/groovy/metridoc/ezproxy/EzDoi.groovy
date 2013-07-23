@@ -84,4 +84,18 @@ class EzDoi extends EzproxyBase{
 
         return false
     }
+
+    @Override
+    String createNaturalKey() {
+        return "${ezproxyId}_#_${doi}"
+    }
+
+    @Override
+    boolean alreadyExists() {
+        def session = sessionFactory.currentSession
+        def query = session.createQuery("from EzproxyHosts where doi = :doi and ezproxyId = :ezproxyHost")
+                .setParameter("doi", doi)
+                .setParameter("ezproxyId", ezproxyId)
+        query.list().size() > 0
+    }
 }

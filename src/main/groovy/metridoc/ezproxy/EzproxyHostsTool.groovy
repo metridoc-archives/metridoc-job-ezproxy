@@ -1,17 +1,18 @@
 package metridoc.ezproxy
 
+import groovy.transform.ToString
 import groovy.util.logging.Slf4j
 import metridoc.core.tools.CamelTool
+import metridoc.core.tools.HibernateTool
 import metridoc.core.tools.RunnableTool
-import metridoc.utils.ApacheLogParser
+import metridoc.writers.EntityIteratorWriter
 import metridoc.writers.IteratorWriter
-import metridoc.writers.TableIteratorWriter
 import metridoc.writers.WriteResponse
-import metridoc.writers.WrittenRecordStat
 import org.apache.camel.component.file.GenericFile
 import org.apache.camel.component.file.GenericFileFilter
+import org.hibernate.Query
+import org.hibernate.Session
 
-import java.util.regex.Pattern
 import java.util.zip.GZIPInputStream
 
 /**
@@ -20,14 +21,14 @@ import java.util.zip.GZIPInputStream
  */
 @SuppressWarnings("GrMethodMayBeStatic")
 @Slf4j
-class EzproxyTool extends RunnableTool {
+@ToString(includePackage = false, includeNames = true)
+class EzproxyHostsTool extends RunnableTool {
     public static final String EZPROXY_PARSER_IS_NULL = "ezproxy parser cannot be null"
     public static final String FILE_FILTER_IS_NULL = "ezproxy file filter cannot be null"
     public static final String EZ_DIRECTORY_IS_NULL = 'ezproxy directory cannot be null'
     public static final String DEFAULT_FILE_FILTER = "ezproxy*"
     public static final Closure<String> EZ_DIRECTORY_DOES_NOT_EXISTS = { "ezproxy directory ${it} does not exist" as String }
     public static final Closure<String> EZ_FILE_DOES_NOT_EXIST = { "ezproxy file $it does not exist" as String }
-    public static final APACHE_NULL = "-"
 
     public static final Closure<Map> DEFAULT_EZ_PARSER = { String line ->
         def data = line.split(/\|\|/)
@@ -46,22 +47,23 @@ class EzproxyTool extends RunnableTool {
     }
 
     String ezEncoding = "utf-8"
-
     Closure<Map> ezParser = DEFAULT_EZ_PARSER
-
     String ezFileFilter = DEFAULT_FILE_FILTER
     File ezDirectory
     File ezFile
-    String processedExtension = "processed"
-    IteratorWriter ezWriter = new TableIteratorWriter()
-    int assertionErrors = 0
-    int successfulRecords = 0
+    IteratorWriter ezWriter = new EntityIteratorWriter(recordEntityClass: EzproxyHosts)
     WriteResponse writerResponse
+    HibernateTool hibernateTool
+    List<Class> entityClasses = [EzproxyHosts]
+    String ezFromUrl
 
     @Override
     def configure() {
+        hibernateTool = includeTool(HibernateTool, entityClasses: entityClasses)
+        if (ezWriter instanceof EntityIteratorWriter) {
+            ezWriter.sessionFactory = hibernateTool.sessionFactory
+        }
         validateInputs()
-
         target(processEzproxyFile: "default target for processing ezproxy file") {
             def camelTool = includeTool(CamelTool)
             processFile {
@@ -77,71 +79,14 @@ class EzproxyTool extends RunnableTool {
                 )
 
                 writerResponse = ezWriter.write(ezIterator)
-                int total = 0
-                def stats = writerResponse.aggregateStats
-                stats.values().each {
-                    total += it
+                if(writerResponse.fatalErrors) {
+                    throw writerResponse.fatalErrors[0]
                 }
-                assertionErrors = stats[WrittenRecordStat.Status.INVALID]
-                successfulRecords = stats[WrittenRecordStat.Status.WRITTEN]
-                if(assertionErrors) {
-                    log.warn "while iterating over ${total} records there were ${stats[WrittenRecordStat.Status.INVALID]} errors"
-                }
-                camelTool.close()
             }
+            camelTool.close()
         }
 
         setDefaultTarget("processEzproxyFile")
-    }
-
-    protected void convertApacheNullToNull(Map map) {
-        map.each {key, value ->
-            if(value == APACHE_NULL) {
-                map[key] = null
-            }
-        }
-    }
-
-    protected void addDateValues(Map record) {
-        def proxyDate = record.proxyDate
-        if (notNull(proxyDate)) {
-            if (proxyDate instanceof String) {
-                try {
-                    record.proxyDate = ApacheLogParser.parseLogDate(proxyDate)
-                }
-                catch (Throwable e) {
-                    //since during parsing assertion errors are considered 'invalid'
-                    throw new AssertionError("$proxyDate is not a parsable date", e)
-                }
-            }
-
-            def calendar = new GregorianCalendar()
-            calendar.setTime(record.proxyDate as Date)
-            record.proxyYear = calendar.get(Calendar.YEAR)
-            record.proxyMonth = calendar.get(Calendar.MONTH)
-            record.proxyDay = calendar.get(Calendar.DAY_OF_MONTH)
-        }
-    }
-
-    protected boolean notNull(item) {
-        if(item == null) {
-            return false
-        }
-
-        if(item instanceof String) {
-            item.trim() && item.trim() != APACHE_NULL
-        }
-
-        return true
-    }
-
-    protected void validateUrl(String url) {
-        try {
-            new URL(url).toURI()
-        }
-        catch (URISyntaxException | MalformedURLException ex) {
-            throw new AssertionError(ex)
-        }
     }
 
     protected void validateInputs() {
@@ -156,40 +101,25 @@ class EzproxyTool extends RunnableTool {
         }
     }
 
-    boolean acceptFile(File file) {
-        def fileName = file.name
+    boolean acceptFile(String fileName) {
+        def result
 
-        if (fileName.endsWith(".$processedExtension")) {
-            return false
+        hibernateTool.withTransaction {Session session ->
+            Query query = session.createQuery("from EzproxyHosts where fileName = :fileName")
+                    .setParameter("fileName", fileName)
+            result = query.list()
         }
 
-        def processedFileName = "${fileName}.$processedExtension"
-        def processedFile = new File(file.parent, processedFileName)
-
-        if (processedFile.exists()) {
-            return false
-        }
-
-        return true
+        return result.size() ==  0
     }
 
-    protected File finishProcessingFile(File file) {
-        def fileName = file.name
-        def result = new File(file.parent, "${fileName}.$processedExtension")
-        boolean created = result.createNewFile()
-        if (!created) {
-            log.warn "Could not create processed file $result, it was probably already there"
-        }
-
-        return result
-    }
-
-    protected boolean processFile(Closure closure) {
+    protected processFile(Closure closure) {
         if(ezFile) {
+            assert ezFile.exists() : "$ezFile does not exist"
             ezDirectory = new File(ezFile.parent)
         }
 
-        long readLockTimeout = 1000 * 60 * 60 //one hour
+        long readLockTimeout = 1000 * 60 * 60 * 24 //one day
         String fileUrl = "${ezDirectory.toURI().toURL()}?noop=true&readLockTimeout=${readLockTimeout}&antInclude=${ezFileFilter}&sendEmptyMessageWhenIdle=true&filter=#ezproxyFileFilter"
         def camelTool = includeTool(CamelTool)
         def doesNotHaveFilter = !camelTool.camelContext.registry.lookupByName("ezproxyFileFilter")
@@ -197,27 +127,32 @@ class EzproxyTool extends RunnableTool {
             camelTool.bind("ezproxyFileFilter",
                     [
                             accept: { GenericFile file ->
-                                if(ezFile) {
-                                    return file.fileNameOnly == ezFile.name
+                                try {
+                                    if(ezFile) {
+                                        return file.fileNameOnly == ezFile.name
+                                    }
+                                    acceptFile(file.fileName)
                                 }
-                                acceptFile(file.file as File)
+                                catch (Throwable throwable) {
+                                    log.error "problem filtering file", throwable
+                                    return false
+                                }
                             }
                     ] as GenericFileFilter
             )
         }
 
+        def usedUrl = ezFromUrl ?: fileUrl
         //this creates a file transaction
-        camelTool.consume(fileUrl) { File file ->
+        camelTool.consume(usedUrl) { File file ->
             ezFile = file
+            log.info "processing file $file"
             if (ezFile) {
                 closure.call(ezFile)
-                finishProcessingFile(file)
             }
         }
         return ezFile
     }
-
-
 }
 
 
