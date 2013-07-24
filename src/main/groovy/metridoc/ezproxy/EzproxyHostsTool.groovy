@@ -25,7 +25,7 @@ import java.util.zip.GZIPInputStream
 class EzproxyHostsTool extends RunnableTool {
     public static final String EZPROXY_PARSER_IS_NULL = "ezproxy parser cannot be null"
     public static final String FILE_FILTER_IS_NULL = "ezproxy file filter cannot be null"
-    public static final String EZ_DIRECTORY_IS_NULL = 'ezproxy directory cannot be null'
+    public static final String EZ_DIRECTORY_IS_NULL = 'ezproxy directory or ezFromUrl must not be null'
     public static final String DEFAULT_FILE_FILTER = "ezproxy*"
     public static final Closure<String> EZ_DIRECTORY_DOES_NOT_EXISTS = { "ezproxy directory ${it} does not exist" as String }
     public static final Closure<String> EZ_FILE_DOES_NOT_EXIST = { "ezproxy file $it does not exist" as String }
@@ -94,8 +94,10 @@ class EzproxyHostsTool extends RunnableTool {
 
         if (!ezFile) {
             assert ezFileFilter: FILE_FILTER_IS_NULL
-            assert ezDirectory: EZ_DIRECTORY_IS_NULL
-            assert ezDirectory.exists(): EZ_DIRECTORY_DOES_NOT_EXISTS(ezDirectory)
+            assert ezDirectory || ezFromUrl: EZ_DIRECTORY_IS_NULL
+            if (ezDirectory) {
+                assert ezDirectory.exists(): EZ_DIRECTORY_DOES_NOT_EXISTS(ezDirectory)
+            }
         } else {
             assert ezFile.exists(): EZ_FILE_DOES_NOT_EXIST(ezFile)
         }
@@ -120,7 +122,10 @@ class EzproxyHostsTool extends RunnableTool {
         }
 
         long readLockTimeout = 1000 * 60 * 60 * 24 //one day
-        String fileUrl = "${ezDirectory.toURI().toURL()}?noop=true&readLockTimeout=${readLockTimeout}&antInclude=${ezFileFilter}&sendEmptyMessageWhenIdle=true&filter=#ezproxyFileFilter"
+        String fileUrl
+        if (ezDirectory) {
+            fileUrl = "${ezDirectory.toURI().toURL()}?noop=true&readLockTimeout=${readLockTimeout}&antInclude=${ezFileFilter}&sendEmptyMessageWhenIdle=true&filter=#ezproxyFileFilter"
+        }
         def camelTool = includeTool(CamelTool)
         def doesNotHaveFilter = !camelTool.camelContext.registry.lookupByName("ezproxyFileFilter")
         if (doesNotHaveFilter) {

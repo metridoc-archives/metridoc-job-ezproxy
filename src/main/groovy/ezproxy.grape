@@ -1,0 +1,14 @@
+@Grab(group = "com.github.metridoc", module = "metridoc-job-ezproxy", version = "0.1")
+@Grab(group = "org.apache.camel", module = "camel-core", version = "2.11.0")
+@Grab(group = "org.slf4j", module = "slf4j-simple", version = "1.7.5")
+@GrabConfig(systemClassLoader=true)
+@GrabResolver(name='jcenter', root='http://jcenter.bintray.com')
+import metridoc.ezproxy.EzproxyMain
+
+System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "error")
+System.setProperty("org.slf4j.simpleLogger.log.metridoc", "info")
+
+def inputStream = EzproxyMain.classLoader.getResourceAsStream("ezproxy.job")
+def shell = new GroovyShell(binding)
+shell.evaluate(inputStream.newReader("utf-8"))
+

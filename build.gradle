@@ -31,7 +31,7 @@ repositories {
 
 dependencies {
     compile('org.codehaus.groovy:groovy-all:2.0.8')
-    compile 'com.googlecode.metridoc:metridoc-job-core:0.5.RC9'
+    compile 'com.googlecode.metridoc:metridoc-job-core:0.5'
     testCompile 'org.spockframework:spock-core:0.7-groovy-2.0'
     testCompile 'org.slf4j:slf4j-simple:1.6.6'
     testCompile 'org.springframework:spring-jdbc:3.2.3.RELEASE'
@@ -117,24 +117,28 @@ def configurePom(pom) {
                 email = 'tbarker@pobox.upenn.edu'
             }
         }
+        repositories {
+            repository {
+                id = 'jcenter'
+                url = "http://jcenter.bintray.com/"
+            }
+        }
     }
 }
 
-task uploadToBintray(dependsOn: ["prepareForBintrayUpload", "publishBintrayPackages"])
+task uploadToBintray(dependsOn: ["prepareForBintrayUpload", "uploadArchives"])
 
 task prepareForBintrayUpload << {
 
     if (version.contains("SNAPSHOT")) {
         println "bintray does not support SNAPSHOTs, skipping upload to bintray"
         uploadArchives.enabled = false
-        publishBintrayPackages.enabled = false
         return
     }
 
     if (!project.hasProperty("bintrayUsername")) {
         println "bintray credentials not setup, skipping upload to bintray"
         uploadArchives.enabled = false
-        publishBintrayPackages.enabled = false
         return
     }
 
@@ -146,28 +150,5 @@ task prepareForBintrayUpload << {
     if (versionAlreadyDeployed) {
         println "version $version has already been deployed to bintray, skipping upload to bintray"
         uploadArchives.enabled = false
-        publishBintrayPackages.enabled = false
-    }
-}
-
-task publishBintrayPackages(dependsOn: "uploadArchives") << {
-    def client = new RESTClient("https://api.bintray.com/")
-    client.authorization = new HTTPBasicAuthorization(bintrayUsername, bintrayPassword)
-    try {
-        def response = client.post(
-                path: "/content/upennlib/metridoc/metridoc-job-ezproxy/$version/publish",
-                accept: ContentType.JSON
-        ) {
-            type ContentType.JSON
-            charset "utf-8"
-            text ""
-        }
-        println response.getContentAsString()
-    }
-    catch (RESTClientException ex) {
-        println ""
-        println "COULD NOT PUBLISH"
-        println ex.response.getContentAsString()
-        throw ex
     }
 }
