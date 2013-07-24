@@ -12,16 +12,16 @@ class EzproxyHostsSpec extends Specification {
         when: "validate empty payload"
         new EzproxyHosts().validate()
 
-        then: "fileName cannot be null"
+        then: "lineNumber cannot be null"
         def error = thrown(AssertionError)
-        error.message.contains("fileName")
+        error.message.contains("lineNumber")
 
-        when: "fileName is there"
-        new EzproxyHosts(fileName: "foo").validate()
+        when: "lineNumber is there"
+        new EzproxyHosts(lineNumber: 1).validate()
 
-        then: "urlHost cannot be null"
+        then: "fileName cannot be null"
         error = thrown(AssertionError)
-        error.message.contains("urlHost")
+        error.message.contains("fileName")
     }
 
     def "test truncation"() {
