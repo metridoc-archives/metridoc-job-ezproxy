@@ -10,5 +10,11 @@ System.setProperty("org.slf4j.simpleLogger.log.metridoc", "info")
 
 def inputStream = EzproxyMain.classLoader.getResourceAsStream("ezproxy.job")
 def shell = new GroovyShell(binding)
+
+if (inputStream == null) {
+    def url = new URL("https://raw.github.com/metridoc/metridoc-job-ezproxy/master/src/main/groovy/ezproxy.job")
+    inputStream = url.newInputStream()
+}
+
 shell.evaluate(inputStream.newReader("utf-8"))
 
