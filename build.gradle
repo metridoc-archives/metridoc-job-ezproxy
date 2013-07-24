@@ -89,8 +89,8 @@ def configurePom(pom) {
     }
 
     pom.project {
-        name = "$bintrayArtifact"
-        artifactId = "$bintrayArtifact"
+        name = "metridoc-job-ezproxy"
+        artifactId = "metridoc-job-ezproxy"
         description = project.description
         url = "https://github.com/metridoc/metridoc-job-ezproxy.git"
         organization {
