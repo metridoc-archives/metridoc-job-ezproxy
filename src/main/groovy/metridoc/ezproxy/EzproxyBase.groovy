@@ -87,7 +87,7 @@ abstract class EzproxyBase extends MetridocRecordEntity {
                 catch (Throwable ignored) {
                     def log = LoggerFactory.getLogger(this.getClass())
                     log.warn("Could not parse date $proxyDate")
-                    //if this data point is important validation will fail
+                    return
                 }
             }
 

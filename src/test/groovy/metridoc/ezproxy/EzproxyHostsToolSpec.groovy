@@ -1,6 +1,8 @@
 package metridoc.ezproxy
 
 import com.google.common.collect.Table
+import metridoc.writers.TableIteratorWriter
+import org.apache.commons.lang.ObjectUtils
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Specification
@@ -21,7 +23,7 @@ class EzproxyHostsToolSpec extends Specification {
     EzproxyHostsTool tool
 
     def setup() {
-        tool = new EzproxyHostsTool(ezDirectory: folder.root)
+        tool = new EzproxyHostsTool(ezDirectory: folder.root, ezWriter: new TableIteratorWriter())
     }
 
     @Timeout(5)
@@ -33,72 +35,6 @@ class EzproxyHostsToolSpec extends Specification {
 
         then: "it should not fail or hang"
         notThrown(Throwable)
-    }
-
-    def "a file should only be accepted if not already processed"() {
-        given: "a folder with a file to process"
-        File testFile = folder.newFile("ezproxy.test")
-
-        when: "when not marked as processed"
-
-        then: "file will be accepted for processing"
-        tool.acceptFile(testFile)
-
-        when: "file IS marked as processed"
-        folder.newFile("ezproxy.test.processed")
-
-        then: "file is will NOT be accepted"
-        !tool.acceptFile(testFile)
-    }
-
-    def "getFileToProcess will return null if there are no files to process or they dont match the pattern"() {
-        given: "a folder that has no files"
-
-        when: "processFile is called"
-        def response = tool.processFile {}
-
-        then: "it will return false"
-        !response
-
-        when: "a non ezproxy file is added"
-        folder.newFile("foobar")
-
-        and: "processFile is called"
-        response = tool.processFile {}
-
-        then: "it will return false"
-        !response
-    }
-
-    def "processFile will return null if a valid file has already been processed"() {
-        given: "a folder with a processed ezproxy file"
-        folder.newFile("ezproxy.testFile.processed")
-
-        when: "processFile is called"
-        def response = tool.processFile {
-            //do nothing
-        }
-
-        then: "the response should be false since no files were processed"
-        !response
-
-        and: "the field ezFile is null"
-        null == tool.ezFile
-    }
-
-    def "finishProcessingFile creates the same file name with processed extension"() {
-        given: "a folder with a file we just processed"
-        File fileToProcess = folder.newFile("ezproxy.testFile")
-
-        when: "finishProcessingFile is called"
-        def result = tool.finishProcessingFile(fileToProcess)
-
-        then: "a processed file is created"
-        new File(folder.root, "${fileToProcess.name}.processed").exists()
-
-        and: "the processed file is returned"
-        result.exists()
-        "${fileToProcess.name}.processed" == result.name
     }
 
     def "validating inputs check that appropriate parameters have been provided for the tool to execute"() {
@@ -151,75 +87,7 @@ class EzproxyHostsToolSpec extends Specification {
         e.message.contains(EZ_FILE_DOES_NOT_EXIST("foo"))
     }
 
-    def "if proxy date is a string and not in apache form, it should fail"() {
-        given: "a bad date in a record"
-        def date = "ljkahsdflkjhasdf"
-        def record = [proxyDate: date]
 
-        when: "addDateValues is called"
-        tool.addDateValues(record)
-
-        then: "an assertion error should occur"
-        thrown(AssertionError)
-    }
-
-    def "if proxy date is a Date, appropriate dates should be added when addDateValues is called"() {
-        given: "todays date set for proxyDate in the record"
-        def today = new Date()
-        def calendar = new GregorianCalendar()
-        calendar.setTime(today)
-        int year = calendar.get(Calendar.YEAR)
-        int month = calendar.get(Calendar.MONTH)
-        int day = calendar.get(Calendar.DAY_OF_MONTH)
-        def record = [proxyDate: today]
-
-        when: "addDateValues is called"
-        tool.addDateValues(record)
-
-        then: "appropriate values should be set"
-        year == record.proxyYear
-        month == record.proxyMonth
-        day == record.proxyDay
-    }
-
-    def "if there is no proxyDate nothing will happen"() {
-        given: "a record with no proxyDate"
-        def record = [:]
-
-        when: "addDateValues is called"
-        tool.addDateValues(record)
-
-        then: "no error is thrown"
-        notThrown(Throwable)
-    }
-
-    def "validUrl throws assertion error if url is invalid"() {
-        when: "validateUrl is called with bad url"
-        tool.validateUrl("lkjahsdflkjhasdf")
-
-        then: "an assertion error occurs"
-        def e = thrown(AssertionError)
-        e.cause instanceof MalformedURLException
-
-        when: "validate url is called with bad uri"
-        tool.validateUrl("http://aksjhd akjshd kjahsd")
-
-        then: "an assertion error is thrown"
-        e = thrown(AssertionError)
-        e.cause instanceof URISyntaxException
-    }
-
-    def "convert apache null to null"() {
-        given: "a record with apache null values"
-        def record = [foo: APACHE_NULL]
-
-        when: "convertApacheNullToNull is called"
-        tool.convertApacheNullToNull(record)
-
-        then: "the value is null"
-        record.containsKey("foo")
-        null == record.foo
-    }
 
     String data = """124.193.247.47||Beijing||22||China||-||-||[31/Dec/2010:00:00:01 -0500]||GET||https://proxy.library.upenn.edu:443/||302||0||-||Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)]||-||-
 72.162.123.139||Philadelphia||PA||United States||Default+datasets+documents+pwp+vanwert||lipings||[31/Dec/2010:00:00:01 -0500]||GET||http://www.sciencedirect.com:80/science?_ob=MImg&_imagekey=B6THY-4X4Y21M-4-5&_cdi=5295&_user=489256&_pii=S0169433209012380&_origin=search&_coverDate=12%2F15%2F2009&_sk=997439994&view=c&wchp=dGLbVlb-zSkzV&md5=888dc249bd136d1ef0b7e0c8cf24b136&ie=/sdarticle.pdf||200||407638||-||Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; Trident/4.0; GTB6.6; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; InfoPath.2; Tablet PC 2.0; .NET4.0C; MALC)]||96CV6QQh0Mclz5Z||__utma=247612227.1070650544.1272030987.1283660961.1287343337.5; __utmz=247612227.1287343337.5.3.utmccn=(organic)|utmcsr=google|utmctr=upenn|utmcmd=organic; __gads=ID=5faba231e298fe89:T=1292603848:S=ALNI_MYOmPxGoPHb_7KgunwVnJHvoEVfzw; __utma=261680716.755943438.1272235863.1293748992.1293767555.56; __utmz=261680716.1293767555.56.38.utmcsr=library.upenn.edu|utmccn=(referral)|utmcmd=referral|utmcct=/cgi-bin/res/sr.cgi; CookiesSupported=True; WT_FPC=id=138.238.122.25-534204896.30081899:lv=1281029689521:ss=1281029689521; SaneID=165.123.34.86-1278686716675999; CFID=68687465; CFTOKEN=9c5cc5731933f11d-BD20CE0E-5056-A348-096237A94CEE7604; MAID=1742093464; userId=adaa3489a59e701d8f328dd2bd578529; WOLSIGNATURE=26229058-23b7-493c-84c4-653cc9ada3b9; RemoteACC=7a6c7a47567a794972656c6170324b697a6133633762696d59444c3868306454313544456d4f482f5173427875714f2f736e324e6f673d3d; scopus.machineID=EBx_FILtqT58LLGCQUMgFMV; __utmv=261680716.institutional%20user; __utmc=261680716; JSESSIONID=00007_HX2UTiIWA6GuRn-sSVe76:15c67vngm; BROWSER_SUPPORTS_COOKIES=1; PHPSESSID=938fb22ed23858a24621face3d222cc0; __utma=94565761.1708027833.1272031026.1293746057.1293767331.38; __utmz=94565761.1293767331.38.36.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=penn%20library; hp=/; __utmc=94565761; proxySessionID=18084384; ezproxy=96CV6QQh0Mclz5Z
@@ -266,26 +134,6 @@ class EzproxyHostsToolSpec extends Specification {
         testData()
     }
 
-    def "test full blown data, but use a different processed extension"() {
-        given: "a file with ezproxy data"
-        File file = folder.newFile("ezproxy.test.gz")
-        new GZIPOutputStream(file.newOutputStream()).withWriter("utf-8") { Writer writer ->
-            writer.write(data)
-        }
-
-        and: "an EzproxyHostsTool that is set to consume from that file"
-        tool.ezFile = file
-
-        and: "a custom extension"
-        tool.processedExtension = "foo"
-
-        when: "the file is consumed"
-        tool.execute()
-
-        then: "the response is filled with appropriate data"
-        testData()
-    }
-
     static Table executeTool(EzproxyHostsTool tool) {
         tool.execute()
         Table response = tool.writerResponse as Table
@@ -294,16 +142,16 @@ class EzproxyHostsToolSpec extends Specification {
 
     void testData() {
         Table table = tool.writerResponse as Table
-        assert 11 == table.rowKeySet().size()
+        assert 10 == table.rowKeySet().size()
         def row0 = table.row(0)
-        assert "-" == row0.patronId
+        assert ObjectUtils.NULL == row0.patronId
         def row9 = table.row(9)
         assert "foo" == row9.patronId
         assert "124.193.247.47" == row0.ipAddress
         assert "56.110.98.79" == row9.ipAddress
-        assert 1 == tool.assertionErrors
-        assert 11 == tool.successfulRecords
-
-        assert folder.root.listFiles().find {it.name.endsWith(tool.processedExtension)}
+        def response = tool.writerResponse
+        assert 2 == response.invalidTotal
+        assert 10 == response.writtenTotal
+        assert 12 == response.total
     }
 }

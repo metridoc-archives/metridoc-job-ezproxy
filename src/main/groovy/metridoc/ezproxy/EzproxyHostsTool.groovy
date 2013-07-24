@@ -60,9 +60,7 @@ class EzproxyHostsTool extends RunnableTool {
     @Override
     def configure() {
         hibernateTool = includeTool(HibernateTool, entityClasses: entityClasses)
-        if (ezWriter instanceof EntityIteratorWriter) {
-            ezWriter.sessionFactory = hibernateTool.sessionFactory
-        }
+
         validateInputs()
         target(processEzproxyFile: "default target for processing ezproxy file") {
             def camelTool = includeTool(CamelTool)
@@ -78,6 +76,9 @@ class EzproxyHostsTool extends RunnableTool {
                         ezEncoding: ezEncoding
                 )
 
+                if (ezWriter instanceof EntityIteratorWriter) {
+                    ezWriter.sessionFactory = hibernateTool.sessionFactory
+                }
                 writerResponse = ezWriter.write(ezIterator)
                 if(writerResponse.fatalErrors) {
                     throw writerResponse.fatalErrors[0]
@@ -151,12 +152,11 @@ class EzproxyHostsTool extends RunnableTool {
         //this creates a file transaction
         camelTool.consume(usedUrl) { File file ->
             ezFile = file
-            log.info "processing file $file"
             if (ezFile) {
+                log.info "processing file $file"
                 closure.call(ezFile)
             }
         }
-        return ezFile
     }
 }
 
