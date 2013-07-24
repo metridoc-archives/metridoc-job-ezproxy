@@ -12,7 +12,7 @@ def inputStream = EzproxyMain.classLoader.getResourceAsStream("ezproxy.job")
 def shell = new GroovyShell(binding)
 
 if (inputStream == null) {
-    def url = new URL("https://raw.github.com/metridoc/metridoc-job-ezproxy/master/src/main/groovy/ezproxy.job")
+    def url = new URL("https://raw.github.com/metridoc/metridoc-job-ezproxy/master/src/main/resources/ezproxy.job")
     inputStream = url.newInputStream()
 }
 
