@@ -32,7 +32,11 @@ class EzproxyIteratorSpec extends Specification {
         when: "when next is called for null parser iterator"
         def record = new EzproxyIterator(
                 inputStream: file.newInputStream(),
-                parser: nullParser
+                parser: nullParser,
+                delimiter: "\\|\\|",
+                proxyDate: 1,
+                url: 2,
+                ezproxyId: 3
         ).next()
 
         then: "an AssertionError is thrown"
@@ -41,7 +45,11 @@ class EzproxyIteratorSpec extends Specification {
         when: "when next is called for empty parser iterator"
         record = new EzproxyIterator(
                 inputStream: file.newInputStream(),
-                parser: emptyParser
+                parser: emptyParser,
+                delimiter: "\\|\\|",
+                proxyDate: 1,
+                url: 2,
+                ezproxyId: 3
         ).next()
 
         then: "an AssertionError is thrown"

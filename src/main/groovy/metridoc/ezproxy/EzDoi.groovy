@@ -36,7 +36,7 @@ class EzDoi extends EzproxyBase{
                 slashInd = slashInd > -1 ? doiBegin.indexOf("/", slashInd + 1) : -1;
                 int idxEnd = doiBegin.indexOf('?')
                 if (idxEnd == -1) {
-                    //case where doi is buried in embedded url
+                    //case where doi is buried in embedded camelUrl
                     doiBegin = URLDecoder.decode(doiBegin, "utf-8")
                     idxEnd = doiBegin.indexOf('&')
                     slashInd = slashInd > -1 ? doiBegin.indexOf("/", slashInd + 1) : -1; // compute again in case of encoding

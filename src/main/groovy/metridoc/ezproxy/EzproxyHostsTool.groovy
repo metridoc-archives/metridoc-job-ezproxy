@@ -2,6 +2,7 @@ package metridoc.ezproxy
 
 import groovy.transform.ToString
 import groovy.util.logging.Slf4j
+import metridoc.core.InjectArg
 import metridoc.core.tools.CamelTool
 import metridoc.core.tools.HibernateTool
 import metridoc.core.tools.RunnableTool
@@ -30,56 +31,40 @@ class EzproxyHostsTool extends RunnableTool {
     public static final Closure<String> EZ_DIRECTORY_DOES_NOT_EXISTS = { "ezproxy directory ${it} does not exist" as String }
     public static final Closure<String> EZ_FILE_DOES_NOT_EXIST = { "ezproxy file $it does not exist" as String }
 
-    public static final Closure<Map> DEFAULT_EZ_PARSER = { String line ->
-        def data = line.split(/\|\|/)
-        assert data.size() >= 14: "there should be at least 14 data fields but was only ${data.size()}"
-        def result = [:]
-        result.ipAddress = data[0]
-        result.city = data[1]
-        result.state = data[2]
-        result.country = data[3]
-        result.patronId = data[5]
-        result.proxyDate = data[6]
-        result.url = data[8]
-        result.ezproxyId = data[13]
-
-        return result as Map
-    }
-
-    String ezEncoding = "utf-8"
-    Closure<Map> ezParser = DEFAULT_EZ_PARSER
-    String ezFileFilter = DEFAULT_FILE_FILTER
-    File ezDirectory
-    File ezFile
-    IteratorWriter ezWriter = new EntityIteratorWriter(recordEntityClass: EzproxyHosts)
+    @InjectArg(config = "ezproxy.fileFilter")
+    String fileFilter = DEFAULT_FILE_FILTER
+    @InjectArg(config = "ezproxy.directory")
+    File directory
+    @InjectArg(config = "ezproxy.file")
+    File file
+    @InjectArg(ignore = true)
+    IteratorWriter writer = new EntityIteratorWriter(recordEntityClass: EzproxyHosts)
+    @InjectArg(ignore = true)
     WriteResponse writerResponse
-    HibernateTool hibernateTool
+    @InjectArg(ignore = true)
     List<Class> entityClasses = [EzproxyHosts]
-    String ezFromUrl
+    @InjectArg(config = "ezproxy.camelUrl")
+    String camelUrl
 
     @Override
     def configure() {
-        hibernateTool = includeTool(HibernateTool, entityClasses: entityClasses)
+        def hibernateTool = includeTool(HibernateTool, entityClasses: entityClasses)
 
         validateInputs()
         target(processEzproxyFile: "default target for processing ezproxy file") {
             def camelTool = includeTool(CamelTool)
             processFile {
-                def inputStream = ezFile.newInputStream()
-                if(ezFile.name.endsWith(".gz")) {
+                def inputStream = file.newInputStream()
+                if(file.name.endsWith(".gz")) {
                     inputStream = new GZIPInputStream(inputStream)
                 }
-                def ezIterator = new EzproxyIterator(
-                        inputStream: inputStream,
-                        file: ezFile,
-                        ezParser: ezParser,
-                        ezEncoding: ezEncoding
-                )
 
-                if (ezWriter instanceof EntityIteratorWriter) {
-                    ezWriter.sessionFactory = hibernateTool.sessionFactory
+                def ezIterator = includeTool(EzproxyIterator, inputStream: inputStream)
+
+                if (writer instanceof EntityIteratorWriter) {
+                    writer.sessionFactory = hibernateTool.sessionFactory
                 }
-                writerResponse = ezWriter.write(ezIterator)
+                writerResponse = writer.write(ezIterator)
                 if(writerResponse.fatalErrors) {
                     throw writerResponse.fatalErrors[0]
                 }
@@ -91,22 +76,21 @@ class EzproxyHostsTool extends RunnableTool {
     }
 
     protected void validateInputs() {
-        assert ezParser: EZPROXY_PARSER_IS_NULL
-
-        if (!ezFile) {
-            assert ezFileFilter: FILE_FILTER_IS_NULL
-            assert ezDirectory || ezFromUrl: EZ_DIRECTORY_IS_NULL
-            if (ezDirectory) {
-                assert ezDirectory.exists(): EZ_DIRECTORY_DOES_NOT_EXISTS(ezDirectory)
+        if (!file) {
+            assert fileFilter: FILE_FILTER_IS_NULL
+            assert directory || camelUrl: EZ_DIRECTORY_IS_NULL
+            if (directory) {
+                assert directory.exists(): EZ_DIRECTORY_DOES_NOT_EXISTS(directory)
             }
         } else {
-            assert ezFile.exists(): EZ_FILE_DOES_NOT_EXIST(ezFile)
+            assert file.exists(): EZ_FILE_DOES_NOT_EXIST(file)
         }
     }
 
     boolean acceptFile(String fileName) {
         def result
 
+        def hibernateTool = getVariable("hibernateTool", HibernateTool)
         hibernateTool.withTransaction {Session session ->
             Query query = session.createQuery("from EzproxyHosts where fileName = :fileName")
                     .setParameter("fileName", fileName)
@@ -117,15 +101,15 @@ class EzproxyHostsTool extends RunnableTool {
     }
 
     protected processFile(Closure closure) {
-        if(ezFile) {
-            assert ezFile.exists() : "$ezFile does not exist"
-            ezDirectory = new File(ezFile.parent)
+        if(file) {
+            assert file.exists() : "$file does not exist"
+            directory = new File(file.parent)
         }
 
         long readLockTimeout = 1000 * 60 * 60 * 24 //one day
         String fileUrl
-        if (ezDirectory) {
-            fileUrl = "${ezDirectory.toURI().toURL()}?noop=true&readLockTimeout=${readLockTimeout}&antInclude=${ezFileFilter}&sendEmptyMessageWhenIdle=true&filter=#ezproxyFileFilter"
+        if (directory) {
+            fileUrl = "${directory.toURI().toURL()}?noop=true&readLockTimeout=${readLockTimeout}&antInclude=${fileFilter}&sendEmptyMessageWhenIdle=true&filter=#ezproxyFileFilter"
         }
         def camelTool = includeTool(CamelTool)
         def doesNotHaveFilter = !camelTool.camelContext.registry.lookupByName("ezproxyFileFilter")
@@ -134,8 +118,8 @@ class EzproxyHostsTool extends RunnableTool {
                     [
                             accept: { GenericFile file ->
                                 try {
-                                    if(ezFile) {
-                                        return file.fileNameOnly == ezFile.name
+                                    if(this.file) {
+                                        return file.fileNameOnly == this.file.name
                                     }
                                     acceptFile(file.fileName)
                                 }
@@ -148,13 +132,13 @@ class EzproxyHostsTool extends RunnableTool {
             )
         }
 
-        def usedUrl = ezFromUrl ?: fileUrl
+        def usedUrl = camelUrl ?: fileUrl
         //this creates a file transaction
         camelTool.consume(usedUrl) { File file ->
-            ezFile = file
-            if (ezFile) {
+            this.file = file
+            if (this.file) {
                 log.info "processing file $file"
-                closure.call(ezFile)
+                closure.call(this.file)
             }
         }
     }

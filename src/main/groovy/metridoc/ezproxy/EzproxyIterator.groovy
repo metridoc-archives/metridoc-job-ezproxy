@@ -20,8 +20,8 @@ class EzproxyIterator extends FileIterator implements Tool {
     int patronId = -1
     @InjectArg(config = "ezproxy.country")
     int country = -1
-    @InjectArg(config = "ezproxy.ipaddress")
-    int ipaddress = -1
+    @InjectArg(config = "ezproxy.ipAddress")
+    int ipAddress = -1
     @InjectArg(config = "ezproxy.state")
     int state = -1
     @InjectArg(config = "ezproxy.city")
@@ -34,6 +34,8 @@ class EzproxyIterator extends FileIterator implements Tool {
     int ezproxyId = -1
     @InjectArg(config = "ezproxy.url")
     int url = -1
+    @InjectArg(config = "ezproxy.proxyDate")
+    int proxyDate = -1
     @InjectArg(config = "ezproxy.apacheNull")
     String apacheNull = APACHE_NULL
     @InjectArg(config = "ezproxy.delimiter")
@@ -43,7 +45,7 @@ class EzproxyIterator extends FileIterator implements Tool {
     Closure parser = {String line ->
         String[] items = line.split(delimiter)
         def record = new Record()
-        ["patronId", "country", "ipaddress", "state", "city", "rank", "department", "rank", "ezproxyId"].each {
+        ["patronId", "country", "ipAddress", "state", "city", "rank", "department", "rank", "ezproxyId", "url", "proxyDate"].each {
             int position = this."$it"
             if (position > -1) {
                 assert position < items.size() : "position $position is larger than the size ${items.size()} of the " +
@@ -73,33 +75,46 @@ class EzproxyIterator extends FileIterator implements Tool {
     @Override
     protected Record computeNext() {
         currentRow++
-
+        validateInputs()
         if (lineIterator.hasNext()) {
             currentLine = lineIterator.next()
-            Map result = [:]
             Record record
+            Map body
             try {
                 record = parser.call(currentLine) as Record
+                body = record.body
                 assert record : "the parser must return a non null record"
-                record.body = result
-                assert result: "the result should not be empty or null"
-                convertApacheNullToNull(result)
-                addUrlHosts(result)
-                addProxyDate(result)
+                assert body: "the result should not be empty or null"
+                convertApacheNullToNull(body)
+                addUrlHosts(body)
+                addProxyDate(body)
             }
             catch (Throwable throwable) {
                 if(record == null) {
                     record = new Record()
                 }
                 record.throwable = throwable
+                body = record.body
+                if(body == null) {
+                    body = [:]
+                    record.body = body
+                }
             }
-            result.fileName = fileName
-            result.lineNumber = currentRow
-            result.originalLine = currentLine
+            body.fileName = fileName
+            body.lineNumber = currentRow
+            body.originalLine = currentLine
             return record
         }
 
         return endOfData()
+    }
+
+    void validateInputs() {
+        assert inputStream : "input stream has not been set"
+        assert delimiter : "delimiter has not been set"
+        assert ezproxyId > -1 : "no position for [ezproxyId] has been set"
+        assert url > -1 : "no position for [url] has been set"
+        assert proxyDate > -1 : "no position for [proxyDate] has been set"
     }
 
     protected addUrlHosts(Map result) {
@@ -109,6 +124,7 @@ class EzproxyIterator extends FileIterator implements Tool {
         result.urlHost = new URL(result.url).host
     }
 
+    @SuppressWarnings("GrMethodMayBeStatic")
     protected addProxyDate(Map result) {
         def proxyDate = result.proxyDate
         assert proxyDate : "proxyDate is not in result or is null"
@@ -125,6 +141,7 @@ class EzproxyIterator extends FileIterator implements Tool {
         }
     }
 
+    @SuppressWarnings("GrMethodMayBeStatic")
     protected void validateUrl(String url) {
         try {
             new URL(url)

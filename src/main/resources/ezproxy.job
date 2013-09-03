@@ -1,7 +1,0 @@
-import metridoc.ezproxy.EzproxyMain
-
-System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "error")
-System.setProperty("org.slf4j.simpleLogger.log.metridoc", "info")
-
-new EzproxyMain(binding: binding).run()
-
