@@ -1,5 +1,6 @@
 package metridoc.ezproxy
 
+import metridoc.iterators.Record
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Specification
@@ -23,15 +24,15 @@ class EzproxyIteratorSpec extends Specification {
         }
 
         and: "a parser that always returns null"
-        def nullParser = {null}
+        def nullParser = {new Record(body: null)}
 
         and: "a parser that always returns an empty Map"
-        def emptyParser = {[:]}
+        def emptyParser = {new Record(body: [:])}
 
         when: "when next is called for null parser iterator"
         def record = new EzproxyIterator(
                 inputStream: file.newInputStream(),
-                ezParser: nullParser
+                parser: nullParser
         ).next()
 
         then: "an AssertionError is thrown"
@@ -40,7 +41,7 @@ class EzproxyIteratorSpec extends Specification {
         when: "when next is called for empty parser iterator"
         record = new EzproxyIterator(
                 inputStream: file.newInputStream(),
-                ezParser: emptyParser
+                parser: emptyParser
         ).next()
 
         then: "an AssertionError is thrown"

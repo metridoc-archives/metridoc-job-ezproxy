@@ -1,0 +1,25 @@
+
+###############
+# Ezproxy Job #
+###############
+
+Usage: mdoc [mdoc options] <ezproxy job> [global options] [job options]
+
+Available Jobs
+--------------
+  processEzHosts    processes a given file, storing all unique host names by
+             	    ezproxy id
+
+Global Options (options shared by all jobs)
+--------------
+  -file         the file to process
+
+  -directory    the directory of ezproxy files to process.  Only one file per
+                run will be processed
+
+  -url          a camel url that handles files such as sftp
+
+Options By Job
+--------------
+processEzHosts -
+
