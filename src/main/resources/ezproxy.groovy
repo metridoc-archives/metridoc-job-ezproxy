@@ -1,3 +1,7 @@
-def mainTool = new metridoc.core.tools.MainTool()
+import metridoc.core.MetridocScript
+import metridoc.ezproxy.EzproxyHostsTool
 
-println "klajshdflkajsDhf"
+use(MetridocScript) {
+    includeTool(EzproxyHostsTool).execute()
+}
+

@@ -40,6 +40,8 @@ class EzproxyIterator extends FileIterator implements Tool {
     String apacheNull = APACHE_NULL
     @InjectArg(config = "ezproxy.delimiter")
     String delimiter
+    @InjectArg(config = "ezproxy.maxLines")
+    int maxLines = 0
 
     @InjectArg(config = "ezproxy.parser")
     Closure parser = {String line ->
@@ -75,6 +77,9 @@ class EzproxyIterator extends FileIterator implements Tool {
     @Override
     protected Record computeNext() {
         currentRow++
+        if(maxLines > 0 && currentRow > maxLines) {
+            return endOfData()
+        }
         validateInputs()
         if (lineIterator.hasNext()) {
             currentLine = lineIterator.next()
@@ -155,5 +160,14 @@ class EzproxyIterator extends FileIterator implements Tool {
     void setBinding(Binding binding) {
         //TODO: once setBinding becomes optional for tools, delete this
         //do nothing
+    }
+
+    void preview() {
+        def maxLinesUsed = maxLines ?: 10
+        (0..maxLinesUsed).each {
+            if(this.hasNext()) {
+                log.info this.next()
+            }
+        }
     }
 }

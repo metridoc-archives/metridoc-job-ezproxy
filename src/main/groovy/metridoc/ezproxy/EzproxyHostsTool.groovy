@@ -45,6 +45,8 @@ class EzproxyHostsTool extends RunnableTool {
     List<Class> entityClasses = [EzproxyHosts]
     @InjectArg(config = "ezproxy.camelUrl")
     String camelUrl
+    @InjectArg(config = "ezproxy.preview")
+    boolean preview
 
     @Override
     def configure() {
@@ -60,6 +62,11 @@ class EzproxyHostsTool extends RunnableTool {
                 }
 
                 def ezIterator = includeTool(EzproxyIterator, inputStream: inputStream)
+
+                if(preview) {
+                    ezIterator.preview()
+                    return
+                }
 
                 if (writer instanceof EntityIteratorWriter) {
                     writer.sessionFactory = hibernateTool.sessionFactory

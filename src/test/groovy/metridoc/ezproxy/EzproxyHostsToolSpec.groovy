@@ -143,6 +143,37 @@ class EzproxyHostsToolSpec extends Specification {
         response
     }
 
+    def "test full blown ezproxy file processing with max lines"() {
+        given: "a file with ezproxy data"
+        def args = []
+        args.add "-delimiter=\\|\\|"
+        args.add "-ezproxyId=13"
+        args.add "-url=8"
+        args.add "-proxyDate=6"
+        args.add "-patronId=5"
+        args.add "-ipAddress=0"
+        args.add "-maxLines=3"
+        def binding = new Binding()
+        binding.args = args as String[]
+        use(MetridocScript) {
+            tool = binding.includeTool(EzproxyHostsTool, directory: folder.root, writer: new TableIteratorWriter())
+        }
+        File file = folder.newFile("ezproxy.test.gz")
+        new GZIPOutputStream(file.newOutputStream()).withWriter("utf-8") { Writer writer ->
+            writer.write(data)
+        }
+
+        and: "an EzproxyHostsTool that is set to consume from that file"
+        tool.file = file
+
+        when: "the file is consumed"
+        tool.execute()
+
+        then: "the response is filled with appropriate data"
+        Table table = tool.writerResponse as Table
+        assert 3 == table.rowKeySet().size()
+    }
+
     void testData() {
         Table table = tool.writerResponse as Table
         assert 10 == table.rowKeySet().size()
