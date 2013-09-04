@@ -24,9 +24,8 @@ import java.util.zip.GZIPInputStream
 @Slf4j
 @ToString(includePackage = false, includeNames = true)
 class EzproxyHostsTool extends RunnableTool {
-    public static final String EZPROXY_PARSER_IS_NULL = "ezproxy parser cannot be null"
     public static final String FILE_FILTER_IS_NULL = "ezproxy file filter cannot be null"
-    public static final String EZ_DIRECTORY_IS_NULL = 'ezproxy directory or ezFromUrl must not be null'
+    public static final String EZ_DIRECTORY_IS_NULL = 'ezproxy directory or camelUrl must not be null'
     public static final String DEFAULT_FILE_FILTER = "ezproxy*"
     public static final Closure<String> EZ_DIRECTORY_DOES_NOT_EXISTS = { "ezproxy directory ${it} does not exist" as String }
     public static final Closure<String> EZ_FILE_DOES_NOT_EXIST = { "ezproxy file $it does not exist" as String }
@@ -50,18 +49,22 @@ class EzproxyHostsTool extends RunnableTool {
 
     @Override
     def configure() {
-        def hibernateTool = includeTool(HibernateTool, entityClasses: entityClasses)
+        def hibernateTool
+        if (!preview) {
+            hibernateTool = includeTool(HibernateTool, entityClasses: entityClasses)
+        }
 
         validateInputs()
         target(processEzproxyFile: "default target for processing ezproxy file") {
             def camelTool = includeTool(CamelTool)
             processFile {
                 def inputStream = file.newInputStream()
-                if(file.name.endsWith(".gz")) {
+                def fileName = file.name
+                if(fileName.endsWith(".gz")) {
                     inputStream = new GZIPInputStream(inputStream)
                 }
 
-                def ezIterator = includeTool(EzproxyIterator, inputStream: inputStream)
+                def ezIterator = includeTool(EzproxyIterator, inputStream: inputStream, file: file)
 
                 if(preview) {
                     ezIterator.preview()
@@ -83,6 +86,7 @@ class EzproxyHostsTool extends RunnableTool {
     }
 
     protected void validateInputs() {
+        println this
         if (!file) {
             assert fileFilter: FILE_FILTER_IS_NULL
             assert directory || camelUrl: EZ_DIRECTORY_IS_NULL
@@ -95,8 +99,8 @@ class EzproxyHostsTool extends RunnableTool {
     }
 
     boolean acceptFile(String fileName) {
+        if(preview) return true
         def result
-
         def hibernateTool = getVariable("hibernateTool", HibernateTool)
         hibernateTool.withTransaction {Session session ->
             Query query = session.createQuery("from EzproxyHosts where fileName = :fileName")

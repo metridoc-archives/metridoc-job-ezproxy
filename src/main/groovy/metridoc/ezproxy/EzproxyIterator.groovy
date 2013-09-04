@@ -166,7 +166,33 @@ class EzproxyIterator extends FileIterator implements Tool {
         def maxLinesUsed = maxLines ?: 10
         (0..maxLinesUsed).each {
             if(this.hasNext()) {
-                log.info this.next()
+                def next = this.next()
+                println ""
+                println "Record {"
+
+                println ""
+                println "    originalLine -> $next.body.originalLine"
+                println ""
+
+                next.body.each {key, value ->
+                    if(key != "originalLine") {
+                        Integer position
+                        try {
+                            position = this."$key"
+                        }
+                        catch (Throwable ignored) {
+                            //ignore
+                        }
+                        if(position) {
+                            println "    $key (pos $position) -> $value"
+                        }
+                        else {
+                            println "    $key -> $value"
+                        }
+                    }
+                }
+                println "}"
+                println ""
             }
         }
     }
