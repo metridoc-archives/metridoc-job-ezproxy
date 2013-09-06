@@ -1,5 +1,8 @@
 package metridoc.ezproxy
 
+import metridoc.iterators.Record
+import org.apache.commons.lang.StringUtils
+
 import javax.persistence.Table
 import java.util.regex.Pattern
 
@@ -8,7 +11,7 @@ import java.util.regex.Pattern
  * @author Tommy Barker
  */
 @Table(name = "ez_doi")
-class EzDoi extends EzproxyBase{
+class EzDoi extends EzproxyBase {
 
     String doi
     Boolean processedDoi = false
@@ -19,6 +22,18 @@ class EzDoi extends EzproxyBase{
     public static final transient DOI_PROPERTY_PATTERN = "doi=10."
     public static final transient  DOI_FULL_PATTERN = Pattern.compile(/10\.\d+\//)
 
+    @Override
+    boolean acceptRecord(Record record) {
+        boolean hasEzproxyIdAndHost = super.acceptRecord(record)
+
+        if(!hasEzproxyIdAndHost) {
+            return false
+        }
+
+        return doi != null || doi != StringUtils.EMPTY
+    }
+
+    @SuppressWarnings("GrMethodMayBeStatic")
     protected String extractDoi(String url) {
         String result = null
         int idxBegin = url.indexOf(DOI_PROPERTY_PATTERN)
@@ -67,6 +82,7 @@ class EzDoi extends EzproxyBase{
         return result
     }
 
+    @SuppressWarnings("GrMethodMayBeStatic")
     protected boolean hasDoi(Map record) {
         String url = record.url
         int indexOfDoiPrefix = url.indexOf(DOI_PREFIX_PATTERN)

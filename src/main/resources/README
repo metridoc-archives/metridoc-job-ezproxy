@@ -3,12 +3,16 @@
 # Ezproxy Job #
 ###############
 
-Usage: mdoc [mdoc options] <ezproxy job> [global options] [job options]
+Usage: mdoc [mdoc options] ezproxy <ezproxy job> [global options] [job options]
 
 Available Jobs
 --------------
-  processEzHosts    processes a given file, storing all unique host names by
-             	    ezproxy id
+  processHosts  processes a given file, storing all unique host names by
+             	ezproxy id
+
+  processDois   processes a given file, storing all uniques dois by ezproxy
+                id
+
 
 Global Options (options shared by all jobs)
 --------------
@@ -21,5 +25,8 @@ Global Options (options shared by all jobs)
 
 Options By Job
 --------------
-processEzHosts -
+
+  processEzHosts
+
+  processDois
 
