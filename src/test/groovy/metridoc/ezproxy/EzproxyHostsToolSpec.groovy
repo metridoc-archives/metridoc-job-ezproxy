@@ -34,7 +34,8 @@ class EzproxyHostsToolSpec extends Specification {
         def binding = new Binding()
         binding.args = args as String[]
         use(MetridocScript) {
-            tool = binding.includeTool(EzproxyTool, directory: folder.root, writer: new TableIteratorWriter())
+            tool = binding.includeTool(EzproxyTool, directory: folder.root, writer: new TableIteratorWriter(),
+                    entityClass:EzproxyHosts)
         }
     }
 
@@ -156,7 +157,8 @@ class EzproxyHostsToolSpec extends Specification {
         def binding = new Binding()
         binding.args = args as String[]
         use(MetridocScript) {
-            tool = binding.includeTool(EzproxyTool, directory: folder.root, writer: new TableIteratorWriter())
+            tool = binding.includeTool(EzproxyTool, directory: folder.root, writer: new TableIteratorWriter(),
+                    entityClass:EzproxyHosts)
         }
         File file = folder.newFile("ezproxy.test.gz")
         new GZIPOutputStream(file.newOutputStream()).withWriter("utf-8") { Writer writer ->
