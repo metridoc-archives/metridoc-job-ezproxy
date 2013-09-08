@@ -11,7 +11,7 @@ import spock.lang.Timeout
 
 import java.util.zip.GZIPOutputStream
 
-import static EzproxyHostsTool.*
+import static EzproxyTool.*
 
 /**
  * Created with IntelliJ IDEA on 6/14/13
@@ -21,7 +21,7 @@ class EzproxyHostsToolSpec extends Specification {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder()
-    EzproxyHostsTool tool
+    EzproxyTool tool
 
     def setup() {
         def args = []
@@ -34,7 +34,7 @@ class EzproxyHostsToolSpec extends Specification {
         def binding = new Binding()
         binding.args = args as String[]
         use(MetridocScript) {
-            tool = binding.includeTool(EzproxyHostsTool, directory: folder.root, writer: new TableIteratorWriter())
+            tool = binding.includeTool(EzproxyTool, directory: folder.root, writer: new TableIteratorWriter())
         }
     }
 
@@ -110,7 +110,7 @@ class EzproxyHostsToolSpec extends Specification {
         File file = folder.newFile("ezproxy.test")
         file.write(data, "utf-8")
 
-        and: "an EzproxyHostsTool that is set to consume from that file"
+        and: "an EzproxyTool that is set to consume from that file"
         tool.file = file
 
         when: "the file is consumed"
@@ -127,7 +127,7 @@ class EzproxyHostsToolSpec extends Specification {
             writer.write(data)
         }
 
-        and: "an EzproxyHostsTool that is set to consume from that file"
+        and: "an EzproxyTool that is set to consume from that file"
         tool.file = file
 
         when: "the file is consumed"
@@ -137,7 +137,7 @@ class EzproxyHostsToolSpec extends Specification {
         testData()
     }
 
-    static Table executeTool(EzproxyHostsTool tool) {
+    static Table executeTool(EzproxyTool tool) {
         tool.execute()
         Table response = tool.writerResponse as Table
         response
@@ -156,14 +156,14 @@ class EzproxyHostsToolSpec extends Specification {
         def binding = new Binding()
         binding.args = args as String[]
         use(MetridocScript) {
-            tool = binding.includeTool(EzproxyHostsTool, directory: folder.root, writer: new TableIteratorWriter())
+            tool = binding.includeTool(EzproxyTool, directory: folder.root, writer: new TableIteratorWriter())
         }
         File file = folder.newFile("ezproxy.test.gz")
         new GZIPOutputStream(file.newOutputStream()).withWriter("utf-8") { Writer writer ->
             writer.write(data)
         }
 
-        and: "an EzproxyHostsTool that is set to consume from that file"
+        and: "an EzproxyTool that is set to consume from that file"
         tool.file = file
 
         when: "the file is consumed"

@@ -3,7 +3,6 @@ package metridoc.ezproxy
 import metridoc.entities.MetridocRecordEntity
 import metridoc.iterators.Record
 import metridoc.utils.ApacheLogParser
-import org.hibernate.Session
 import org.hibernate.SessionFactory
 import org.hibernate.annotations.Index
 import org.slf4j.LoggerFactory

@@ -2,17 +2,26 @@ package metridoc.ezproxy
 
 import metridoc.iterators.Record
 import org.apache.commons.lang.StringUtils
+import org.hibernate.annotations.Index
 
+import javax.persistence.Entity
 import javax.persistence.Table
+import javax.persistence.UniqueConstraint
 import java.util.regex.Pattern
 
 /**
  * Created with IntelliJ IDEA on 7/12/13
  * @author Tommy Barker
  */
-@Table(name = "ez_doi")
+@Entity
+@Table(name = "ez_doi",
+        uniqueConstraints = [
+            @UniqueConstraint(name = "ez_doi_ez_id_doi", columnNames = ["ezproxy_id", "doi"]),
+        ]
+)
 class EzDoi extends EzproxyBase {
 
+    @Index(name = "idx_doi")
     String doi
     Boolean processedDoi = false
     Boolean resolvableDoi = false
@@ -23,6 +32,30 @@ class EzDoi extends EzproxyBase {
     public static final transient  DOI_FULL_PATTERN = Pattern.compile(/10\.\d+\//)
 
     @Override
+    void populate(Record record) {
+        def body = record.body
+        doi = extractDoi(body.url)
+        truncateProperties(record, "doi")
+        super.populate(record)
+    }
+
+    @Override
+    void validate() {
+        ["doi"].each { property ->
+            def value = this."$property"
+            if (value instanceof Integer) {
+                assert value != null: "$property cannot be null"
+            }
+            else if (value instanceof String) {
+                assert notNull(value) : "$property cannot be null or empty"
+            }
+            else {
+                assert value: "$property cannot be null or empty"
+            }
+        }
+    }
+
+    @Override
     boolean acceptRecord(Record record) {
         boolean hasEzproxyIdAndHost = super.acceptRecord(record)
 
@@ -30,7 +63,7 @@ class EzDoi extends EzproxyBase {
             return false
         }
 
-        return doi != null || doi != StringUtils.EMPTY
+        return hasDoi(record.body)
     }
 
     @SuppressWarnings("GrMethodMayBeStatic")
@@ -109,7 +142,7 @@ class EzDoi extends EzproxyBase {
     @Override
     boolean alreadyExists() {
         def session = sessionFactory.currentSession
-        def query = session.createQuery("from EzproxyHosts where doi = :doi and ezproxyId = :ezproxyHost")
+        def query = session.createQuery("from EzDoi where doi = :doi and ezproxyId = :ezproxyId")
                 .setParameter("doi", doi)
                 .setParameter("ezproxyId", ezproxyId)
         query.list().size() > 0

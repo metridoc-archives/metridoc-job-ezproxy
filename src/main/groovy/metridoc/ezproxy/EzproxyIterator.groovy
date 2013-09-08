@@ -6,6 +6,7 @@ import metridoc.core.tools.Tool
 import metridoc.iterators.FileIterator
 import metridoc.iterators.Record
 import metridoc.utils.ApacheLogParser
+import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.LineIterator
 
 /**
@@ -16,6 +17,10 @@ import org.apache.commons.io.LineIterator
 @Slf4j
 class EzproxyIterator extends FileIterator implements Tool {
     public static final transient APACHE_NULL = "-"
+    @InjectArg(config = "ezproxy.encryptPatronId")
+    boolean encryptPatronId = false
+    @InjectArg(config = "ezproxy.encryptIpAddress")
+    boolean encryptIpAddress = false
     @InjectArg(config = "ezproxy.patronId")
     int patronId = -1
     @InjectArg(config = "ezproxy.country")
@@ -56,6 +61,14 @@ class EzproxyIterator extends FileIterator implements Tool {
             }
         }
 
+        def body = record.body
+        if(encryptIpAddress && body.ipAddress) {
+            body.ipAddress = DigestUtils.sha256Hex(body.ipAddress as String)
+        }
+
+        if(encryptPatronId && body.patronId) {
+            body.patronId = DigestUtils.sha256Hex(body.patronId as String)
+        }
         return record
     }
     @InjectArg(config = "ezproxy.encoding")
@@ -183,7 +196,7 @@ class EzproxyIterator extends FileIterator implements Tool {
                         catch (Throwable ignored) {
                             //ignore
                         }
-                        if(position) {
+                        if(position > -1) {
                             println "    $key (pos $position) -> $value"
                         }
                         else {

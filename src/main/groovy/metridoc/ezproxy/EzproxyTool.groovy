@@ -23,7 +23,7 @@ import java.util.zip.GZIPInputStream
 @SuppressWarnings("GrMethodMayBeStatic")
 @Slf4j
 @ToString(includePackage = false, includeNames = true)
-class EzproxyHostsTool extends RunnableTool {
+class EzproxyTool extends RunnableTool {
     public static final String FILE_FILTER_IS_NULL = "ezproxy file filter cannot be null"
     public static final String EZ_DIRECTORY_IS_NULL = 'ezproxy directory or camelUrl must not be null'
     public static final String DEFAULT_FILE_FILTER = "ezproxy*"
@@ -37,11 +37,11 @@ class EzproxyHostsTool extends RunnableTool {
     @InjectArg(config = "ezproxy.file")
     File file
     @InjectArg(ignore = true)
-    IteratorWriter writer = new EntityIteratorWriter(recordEntityClass: EzproxyHosts)
+    IteratorWriter writer
     @InjectArg(ignore = true)
     WriteResponse writerResponse
     @InjectArg(ignore = true)
-    List<Class> entityClasses = [EzproxyHosts]
+    def entityClass
     @InjectArg(config = "ezproxy.camelUrl")
     String camelUrl
     @InjectArg(config = "ezproxy.preview")
@@ -49,9 +49,12 @@ class EzproxyHostsTool extends RunnableTool {
 
     @Override
     def configure() {
+
+        assert entityClass : "entityClass cannot be null"
         def hibernateTool
         if (!preview) {
-            hibernateTool = includeTool(HibernateTool, entityClasses: entityClasses)
+            log.info "booting up hibernate with entity $entityClass"
+            hibernateTool = includeTool(HibernateTool, entityClasses: [getEntityClass()])
         }
 
         validateInputs()
@@ -70,7 +73,9 @@ class EzproxyHostsTool extends RunnableTool {
                     ezIterator.preview()
                     return
                 }
-
+                if(!writer) {
+                    writer = new EntityIteratorWriter(recordEntityClass: entityClass)
+                }
                 if (writer instanceof EntityIteratorWriter) {
                     writer.sessionFactory = hibernateTool.sessionFactory
                 }
@@ -103,7 +108,7 @@ class EzproxyHostsTool extends RunnableTool {
         def result
         def hibernateTool = getVariable("hibernateTool", HibernateTool)
         hibernateTool.withTransaction {Session session ->
-            Query query = session.createQuery("from EzproxyHosts where fileName = :fileName")
+            Query query = session.createQuery("from ${entityClass.simpleName} where fileName = :fileName")
                     .setParameter("fileName", fileName)
             result = query.list()
         }
@@ -135,7 +140,7 @@ class EzproxyHostsTool extends RunnableTool {
                                     acceptFile(file.fileName)
                                 }
                                 catch (Throwable throwable) {
-                                    log.error "problem filtering file", throwable
+                                    log.error throwable.message
                                     return false
                                 }
                             }
