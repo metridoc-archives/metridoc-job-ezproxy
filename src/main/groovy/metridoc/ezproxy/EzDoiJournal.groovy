@@ -7,7 +7,6 @@ import javax.persistence.Column
  * @author Tommy Barker
  */
 class EzDoiJournal {
-
     String doi
     @Column(name="article_title")
     String articleTitle
