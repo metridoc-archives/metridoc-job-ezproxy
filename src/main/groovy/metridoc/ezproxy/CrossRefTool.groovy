@@ -2,6 +2,7 @@ package metridoc.ezproxy
 
 import groovy.util.logging.Slf4j
 import groovy.xml.QName
+import metridoc.core.InjectArg
 import metridoc.core.tools.DefaultTool
 
 /**
@@ -10,7 +11,9 @@ import metridoc.core.tools.DefaultTool
  */
 @Slf4j
 class CrossRefTool extends DefaultTool {
+    @InjectArg(config = "ezproxy.crossRefUsername")
     String crossRefUsername
+    @InjectArg(config = "ezproxy.crossRefPassword")
     String crossRefPassword
     Closure<CrossRefResponse> searchCache
     static String ENCODING = "utf-8"
@@ -67,6 +70,13 @@ class CrossRefTool extends DefaultTool {
     }
 
     private static Map parseXml(String xml) {
+        if (log.debugEnabled) {
+            log.debug("""
+                    processing xml:
+
+                    $xml
+                        """)
+        }
         def result = [:]
         def node = new XmlParser().parseText(xml);
         def bodyQuery = node.query_result.body.query
@@ -92,6 +102,11 @@ class CrossRefTool extends DefaultTool {
         multiValueSearch(bodyQuery.issn as NodeList, "type", result)
         multiValueSearch(bodyQuery.isbn as NodeList, "type", result)
 
+        if(log.debugEnabled) {
+            log.debug ("""
+                parsed result is: $result
+            """)
+        }
         return result
     }
 
@@ -108,8 +123,14 @@ class CrossRefTool extends DefaultTool {
             def notInResult = result[lookup] == null
             if (notInResult) {
                 if (closure) {
+                    if (log.debugEnabled) {
+                        log.debug "looking up $lookup"
+                    }
                     result[lookup] = closure.call(getItem(it))
                 } else {
+                    if (log.debugEnabled) {
+                        log.debug "looking up $lookup"
+                    }
                     result[lookup] = getItem(it)
                 }
             }
@@ -124,7 +145,8 @@ class CrossRefTool extends DefaultTool {
 class CrossRefResponse {
     boolean loginFailure = false
     boolean malformedDoi = false
-
+    boolean unresolved = false
+    String status
     String doi
     String articleTitle
     String journalTitle
@@ -137,6 +159,8 @@ class CrossRefResponse {
     Integer printYear
     Integer electronicYear
     Integer onlineYear
+    Integer nullYear
+    Integer otherYear
     String printIssn
     String electronicIssn
     String printIsbn

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory
 
 import javax.persistence.Column
 import javax.persistence.MappedSuperclass
+import static metridoc.ezproxy.TruncateUtils.*
 
 /**
  * Created with IntelliJ IDEA on 7/2/13
@@ -61,18 +62,6 @@ abstract class EzproxyBase extends MetridocRecordEntity {
         addDateValues(record.body)
         truncateProperties(record, "ezproxyId", "fileName", "urlHost")
         super.populate(record)
-    }
-
-    @SuppressWarnings("GrMethodMayBeStatic")
-    protected void truncateProperties(Record record, String... propertyNames) {
-        propertyNames.each { propertyName ->
-            def propertyValue = record.body[propertyName]
-            if (propertyValue && propertyValue instanceof String) {
-                if(propertyValue.size() > DEFAULT_VARCHAR_LENGTH) {
-                    record.body[propertyName] = propertyValue.substring(0, DEFAULT_VARCHAR_LENGTH)
-                }
-            }
-        }
     }
 
     protected void addDateValues(Map record) {

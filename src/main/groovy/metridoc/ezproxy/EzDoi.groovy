@@ -1,13 +1,13 @@
 package metridoc.ezproxy
 
 import metridoc.iterators.Record
-import org.apache.commons.lang.StringUtils
 import org.hibernate.annotations.Index
 
 import javax.persistence.Entity
 import javax.persistence.Table
 import javax.persistence.UniqueConstraint
 import java.util.regex.Pattern
+import static metridoc.ezproxy.TruncateUtils.*
 
 /**
  * Created with IntelliJ IDEA on 7/12/13
@@ -25,7 +25,6 @@ class EzDoi extends EzproxyBase {
     String doi
     Boolean processedDoi = false
     Boolean resolvableDoi = false
-    Boolean processingError = false
 
     public static final transient DOI_PREFIX_PATTERN = "10."
     public static final transient DOI_PROPERTY_PATTERN = "doi=10."

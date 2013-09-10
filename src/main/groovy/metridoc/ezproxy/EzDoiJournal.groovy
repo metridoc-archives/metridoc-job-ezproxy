@@ -1,12 +1,27 @@
 package metridoc.ezproxy
 
+import org.hibernate.annotations.Index
+
 import javax.persistence.Column
+import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.Id
+import javax.persistence.Table
+import javax.persistence.Version
 
 /**
  * Created with IntelliJ IDEA on 7/12/13
  * @author Tommy Barker
  */
+@Entity
+@Table(name = "ez_doi_journal")
 class EzDoiJournal {
+    @Id
+    @GeneratedValue
+    Long id
+    @Version
+    Long version
+    @Column(unique = true, nullable = false)
     String doi
     @Column(name="article_title")
     String articleTitle
@@ -24,6 +39,10 @@ class EzDoiJournal {
     String lastPage
     @Column(name="print_year")
     Integer printYear
+    @Column(name="null_year")
+    Integer nullYear
+    @Column(name="other_year")
+    Integer otherYear
     @Column(name="electronic_year")
     Integer electronicYear
     @Column(name="online_year")
