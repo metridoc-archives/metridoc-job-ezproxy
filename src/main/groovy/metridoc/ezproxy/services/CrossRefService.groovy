@@ -10,7 +10,7 @@ import metridoc.core.tools.DefaultTool
  * @author Tommy Barker
  */
 @Slf4j
-class CrossRefTool extends DefaultTool {
+class CrossRefService extends DefaultTool {
     @InjectArg(config = "ezproxy.crossRefUsername")
     String crossRefUsername
     @InjectArg(config = "ezproxy.crossRefPassword")

@@ -4,7 +4,6 @@ import groovy.transform.ToString
 import groovy.util.logging.Slf4j
 import metridoc.core.InjectArg
 import metridoc.core.InjectArgBase
-import metridoc.core.services.HibernateService
 import metridoc.core.services.RunnableService
 import metridoc.writers.IteratorWriter
 import metridoc.writers.WriteResponse
@@ -35,6 +34,7 @@ class EzproxyService extends RunnableService {
     def entityClass
     String camelUrl
     boolean preview
+    EzproxyIngestService ezproxyIngestService
 
     @Override
     def configure() {
@@ -55,7 +55,7 @@ class EzproxyService extends RunnableService {
     }
 
     private void processEzproxyFile() {
-        includeService(EzproxyIngestService).ingestData()
+        ezproxyIngestService.ingestData()
     }
 
     protected void validateInputs() {

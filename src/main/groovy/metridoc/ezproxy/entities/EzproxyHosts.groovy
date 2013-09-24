@@ -44,7 +44,7 @@ class EzproxyHosts extends EzproxyBase {
                 "city"
         )
 
-        Object.populate(record)
+        super.populate(record)
     }
 
     @Override

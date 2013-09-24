@@ -1,11 +1,11 @@
 package metridoc.ezproxy.services
 
 import metridoc.core.InjectArgBase
-import metridoc.core.services.DefaultService
 import metridoc.core.services.HibernateService
-import metridoc.ezproxy.utils.TruncateUtils
+import metridoc.core.services.RunnableService
 import metridoc.ezproxy.entities.EzDoi
 import metridoc.ezproxy.entities.EzDoiJournal
+import metridoc.ezproxy.utils.TruncateUtils
 import org.hibernate.Session
 
 /**
@@ -13,7 +13,7 @@ import org.hibernate.Session
  * @author Tommy Barker
  */
 @InjectArgBase("ezproxy")
-class ResolveDoisService extends DefaultService {
+class ResolveDoisService extends RunnableService {
 
     int doiResolutionCount = 2000
 
@@ -32,7 +32,7 @@ class ResolveDoisService extends DefaultService {
                 println "there are no dois to process"
             }
 
-            CrossRefTool crossRefTool = includeService(CrossRefTool)
+            CrossRefService crossRefTool = includeService(CrossRefService)
             int counter = 0
             ezDois.each { EzDoi ezDoi ->
                 counter++
@@ -73,5 +73,12 @@ class ResolveDoisService extends DefaultService {
                 session.save(ezDoi)
             }
         }
+    }
+
+    @Override
+    def configure() {
+        step(resolveDois: "resolve dois")
+
+        setDefaultTarget("resolveDois")
     }
 }

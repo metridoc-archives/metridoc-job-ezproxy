@@ -18,6 +18,7 @@ class EzproxyFileFilterService implements GenericFileFilter {
 
     File file
     boolean preview
+    boolean stacktrace
     @InjectArg(ignore = true)
     Class entityClass
 
@@ -40,7 +41,11 @@ class EzproxyFileFilterService implements GenericFileFilter {
             return result.size() ==  0
         }
         catch (Throwable throwable) {
-            log.error throwable.message
+            if(stacktrace) {
+                throwable.printStackTrace()
+            } else {
+                log.error throwable.message
+            }
             return false
         }
     }

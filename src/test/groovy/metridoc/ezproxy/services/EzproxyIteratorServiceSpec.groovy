@@ -1,6 +1,5 @@
 package metridoc.ezproxy.services
 
-import metridoc.ezproxy.services.EzproxyIteratorService
 import metridoc.iterators.Record
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder

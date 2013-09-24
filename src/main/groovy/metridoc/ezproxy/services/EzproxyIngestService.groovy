@@ -18,35 +18,39 @@ import java.util.zip.GZIPInputStream
 class EzproxyIngestService extends DefaultService {
 
     EzproxyService ezproxyService
+    CamelService camelService
 
     void ingestData() {
-        def camelService = createCamelService()
+
+        setupWriter()
 
         processFile {
-
-            EzproxyIteratorService ezIterator = getEzproxyIterator()
-
             ezproxyService.with {
                 if (preview) {
-                    ezIterator.preview()
+                    ezproxyIterator.preview()
                     return
                 }
-                if (!writer) {
-                    writer = new EntityIteratorWriter(recordEntityClass: entityClass)
-                }
 
-                if (writer instanceof EntityIteratorWriter) {
-                    def hibernateService = includeService(HibernateService, entityClasses: [entityClass])
-                    writer.sessionFactory = hibernateService.sessionFactory
-                }
-
-                writerResponse = writer.write(ezIterator)
+                writerResponse = writer.write(ezproxyIterator)
                 if (writerResponse.fatalErrors) {
                     throw writerResponse.fatalErrors[0]
                 }
             }
         }
         camelService.close()
+    }
+
+    protected void setupWriter() {
+        ezproxyService.with {
+            if (!writer) {
+                writer = new EntityIteratorWriter(recordEntityClass: entityClass)
+            }
+
+            if (writer instanceof EntityIteratorWriter && !preview) {
+                def hibernateService = includeService(HibernateService, entityClasses: [entityClass])
+                writer.sessionFactory = hibernateService.sessionFactory
+            }
+        }
     }
 
     protected EzproxyIteratorService getEzproxyIterator() {
@@ -65,7 +69,6 @@ class EzproxyIngestService extends DefaultService {
 
     protected processFile(Closure closure) {
         String fileUrl = createFileUrl()
-        CamelService camelService = createCamelService()
 
         ezproxyService.with {
             def usedUrl = camelUrl ?: fileUrl
@@ -94,17 +97,5 @@ class EzproxyIngestService extends DefaultService {
             }
         }
         fileUrl
-    }
-
-    protected CamelService createCamelService() {
-        def camelService = includeService(CamelService)
-        def doesNotHaveFilter = !camelService.camelContext.registry.lookupByName("ezproxyFileFilter")
-        if (doesNotHaveFilter) {
-            ezproxyService.with {
-                def fileFilter = includeService(EzproxyFileFilterService, entityClass: entityClass, preview: preview, file: file)
-                camelService.bind("ezproxyFileFilter", fileFilter)
-            }
-        }
-        camelService
     }
 }

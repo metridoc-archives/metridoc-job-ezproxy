@@ -1,9 +1,15 @@
 import metridoc.core.MetridocScript
+import metridoc.core.services.CamelService
+import metridoc.core.services.HibernateService
 import metridoc.core.tools.ParseArgsTool
-import metridoc.ezproxy.services.EzproxyService
-import metridoc.ezproxy.services.ResolveDoisService
 import metridoc.ezproxy.entities.EzDoi
 import metridoc.ezproxy.entities.EzproxyHosts
+import metridoc.ezproxy.services.EzproxyFileFilterService
+import metridoc.ezproxy.services.EzproxyIngestService
+import metridoc.ezproxy.services.EzproxyService
+import metridoc.ezproxy.services.ResolveDoisService
+
+EzproxyService ezproxyService
 
 use(MetridocScript) {
     includeService(ParseArgsTool)
@@ -17,17 +23,44 @@ use(MetridocScript) {
         println ""
     }
 
+
+
     switch (command) {
         case "processHosts":
-            includeService(entityClass: EzproxyHosts, EzproxyService).execute()
+            println "processing hosts"
+            ingestFor(EzproxyHosts)
             return
         case "processDois":
             println "processing dois"
-            includeService(entityClass: EzDoi, EzproxyService).execute()
+            ingestFor(EzDoi)
             return
         case "resolveDois":
             println "resolving dois"
-            includeService(ResolveDoisService).resolveDois()
+            includeService(ResolveDoisService).execute()
             return
+    }
+}
+
+void ingestFor(Class ezproxyIngestClass) {
+    use(MetridocScript)  {
+        wireupServices(ezproxyIngestClass)
+        ezproxyService.execute()
+    }
+}
+
+void wireupServices(Class ezproxyIngestClass) {
+    use(MetridocScript)  {
+        if(!argsMap.containsKey("preview")) {
+            includeService(HibernateService, entityClasses: [ezproxyIngestClass])
+        }
+        ezproxyService = includeService(EzproxyService, entityClass: ezproxyIngestClass)
+        def camelService = includeService(CamelService)
+        def ezproxyFileFilter = includeService(EzproxyFileFilterService, entityClass: ezproxyIngestClass)
+        camelService.bind("ezproxyFileFilter", ezproxyFileFilter)
+
+        def ingestService = includeService(EzproxyIngestService)
+
+        //circular dependency
+        ezproxyService.ezproxyIngestService = ingestService
     }
 }
