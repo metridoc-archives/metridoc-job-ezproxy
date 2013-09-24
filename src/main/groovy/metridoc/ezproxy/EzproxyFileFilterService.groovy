@@ -14,7 +14,7 @@ import org.hibernate.Session
  */
 @Slf4j
 @InjectArgBase("ezproxy")
-class EzproxyFileFilter implements GenericFileFilter {
+class EzproxyFileFilterService implements GenericFileFilter {
 
     File file
     boolean preview

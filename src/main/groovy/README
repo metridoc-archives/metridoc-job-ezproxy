@@ -3,7 +3,7 @@
 # Ezproxy Job #
 ###############
 
-Usage: mdoc [mdoc options] ezproxy <ezproxy job> [global options] [job options]
+Usage: mdoc [mdoc options] ezproxy <ezproxy job> [job options]
 
 Available Jobs
 --------------
@@ -13,20 +13,50 @@ Available Jobs
   processDois   processes a given file, storing all uniques dois by ezproxy
                 id
 
-
-Global Options (options shared by all jobs)
---------------
-  -file         the file to process
-
-  -directory    the directory of ezproxy files to process.  Only one file per
-                run will be processed
-
-  -url          a camel url that handles files such as sftp
+  resolveDois   iterates through all dois that have been ingested and attempts
+                to resolve bibliographic information from cross ref
 
 Options By Job
 --------------
 
-  processEzHosts
+  processEzHosts and processDois
 
-  processDois
+    pick one of:
+
+        -file       the file to process
+
+        -directory  the directory of ezproxy files to process.  Only one file per
+                    run will be processed
+
+        -url        a camel url that handles files such as sftp. One file from
+                    location is processed
+
+    others:
+
+        -preview            allows user to preview data BEFORE ingestion
+
+        -encryptPatronId    encrypts patronId with SHA256
+
+        -encryptIpAddress   encrypts ipAddress with SHA256
+
+        -delimiter          line delimiter, if file is double piped delimited
+                            this would \|\|
+
+    positional parameters:
+
+        Each flag will contain a number which represents the 0 based position
+        of an item in a line after the delimiter has been applied.  Positional
+        parameters include:
+
+        patronId, country, ipAddress, state, city, rank, department, ezproxyId,
+        url, proxyDate
+
+
+
+
+
+
+
+
+
 

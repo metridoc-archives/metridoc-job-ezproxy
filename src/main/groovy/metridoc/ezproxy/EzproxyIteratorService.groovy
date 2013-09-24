@@ -17,7 +17,7 @@ import org.apache.commons.io.LineIterator
  */
 @Slf4j
 @InjectArgBase("ezproxy")
-class EzproxyIteratorService extends FileIterator implements Tool {
+class EzproxyIteratorService extends FileIterator {
     public static final transient APACHE_NULL = "-"
     boolean encryptPatronId = false
     boolean encryptIpAddress = false
@@ -152,12 +152,6 @@ class EzproxyIteratorService extends FileIterator implements Tool {
         catch (MalformedURLException ex) {
             throw new AssertionError(ex)
         }
-    }
-
-    @Override
-    void setBinding(Binding binding) {
-        //TODO: once setBinding becomes optional for tools, delete this
-        //do nothing
     }
 
     void preview() {
