@@ -22,7 +22,7 @@ class EzproxyServiceSpec extends Specification {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder()
-    EzproxyService tool
+    EzproxyService service
 
     def setup() {
         def args = []
@@ -32,60 +32,61 @@ class EzproxyServiceSpec extends Specification {
         args.add "-proxyDate=6"
         args.add "-patronId=5"
         args.add "-ipAddress=0"
+        args.add "-mergeMetridocConfig=false"
         def binding = new Binding()
         binding.args = args as String[]
         use(MetridocScript) {
-            tool = binding.includeTool(EzproxyService, directory: folder.root, writer: new TableIteratorWriter(),
+            service = binding.includeTool(EzproxyService, directory: folder.root, writer: new TableIteratorWriter(),
                     entityClass:EzproxyHosts)
         }
     }
 
     @Timeout(5)
-    def "if no file exists the tool should not choke"() {
+    def "if no file exists the service should not choke"() {
         given: "an empty folder"
 
-        when: "I call the tool on the empty folder"
-        tool.execute()
+        when: "I call the service on the empty folder"
+        service.execute()
 
         then: "it should not fail or hang"
         notThrown(Throwable)
     }
 
-    def "validating inputs check that appropriate parameters have been provided for the tool to execute"() {
-        given: "a ezproxy tool with all validatable items set to invalid"
-        tool.directory = null
-        tool.fileFilter = null
+    def "validating inputs check that appropriate parameters have been provided for the service to execute"() {
+        given: "a ezproxy service with all validatable items set to invalid"
+        service.directory = null
+        service.fileFilter = null
 
         when:
-        tool.validateInputs()
+        service.validateInputs()
 
         then: "an assertion error occurs because the fileFilter is not set"
         def e = thrown(AssertionError)
         e.message.contains(FILE_FILTER_IS_NULL)
 
         when: "ezParser has a valid filter and validate is called"
-        tool.fileFilter = DEFAULT_FILE_FILTER
-        tool.validateInputs()
+        service.fileFilter = DEFAULT_FILE_FILTER
+        service.validateInputs()
 
         then: "an assertion error occurs since the directory is not set"
         e = thrown(AssertionError)
         e.message.contains(EZ_DIRECTORY_IS_NULL)
 
         when: "directory is set but does not exist"
-        tool.directory = new File("foo")
+        service.directory = new File("foo")
 
         and: "validate is called"
-        tool.validateInputs()
+        service.validateInputs()
 
         then: "assertion error occurs because it does not exist"
         e = thrown(AssertionError)
         e.message.contains(EZ_DIRECTORY_DOES_NOT_EXISTS("foo"))
 
         when: "no existent file is passed in"
-        tool.file = new File("foo")
+        service.file = new File("foo")
 
         and: "validate is called"
-        tool.validateInputs()
+        service.validateInputs()
 
         then: "assertion error occurs because the file does not exist"
         e = thrown(AssertionError)
@@ -113,10 +114,10 @@ class EzproxyServiceSpec extends Specification {
         file.write(data, "utf-8")
 
         and: "an EzproxyService that is set to consume from that file"
-        tool.file = file
+        service.file = file
 
         when: "the file is consumed"
-        executeTool(tool)
+        executeTool(service)
 
         then: "the response is filled with appropriate data"
         testData()
@@ -130,18 +131,18 @@ class EzproxyServiceSpec extends Specification {
         }
 
         and: "an EzproxyService that is set to consume from that file"
-        tool.file = file
+        service.file = file
 
         when: "the file is consumed"
-        tool.execute()
+        service.execute()
 
         then: "the response is filled with appropriate data"
         testData()
     }
 
-    static Table executeTool(EzproxyService tool) {
-        tool.execute()
-        Table response = tool.writerResponse as Table
+    static Table executeTool(EzproxyService service) {
+        service.execute()
+        Table response = service.writerResponse as Table
         response
     }
 
@@ -155,10 +156,11 @@ class EzproxyServiceSpec extends Specification {
         args.add "-patronId=5"
         args.add "-ipAddress=0"
         args.add "-maxLines=3"
+        args.add "-mergeMetridocConfig=false"
         def binding = new Binding()
         binding.args = args as String[]
         use(MetridocScript) {
-            tool = binding.includeTool(EzproxyService, directory: folder.root, writer: new TableIteratorWriter(),
+            service = binding.includeTool(EzproxyService, directory: folder.root, writer: new TableIteratorWriter(),
                     entityClass:EzproxyHosts)
         }
         File file = folder.newFile("ezproxy.test.gz")
@@ -167,18 +169,18 @@ class EzproxyServiceSpec extends Specification {
         }
 
         and: "an EzproxyService that is set to consume from that file"
-        tool.file = file
+        service.file = file
 
         when: "the file is consumed"
-        tool.execute()
+        service.execute()
 
         then: "the response is filled with appropriate data"
-        Table table = tool.writerResponse as Table
+        Table table = service.writerResponse as Table
         assert 3 == table.rowKeySet().size()
     }
 
     void testData() {
-        Table table = tool.writerResponse as Table
+        Table table = service.writerResponse as Table
         assert 10 == table.rowKeySet().size()
         def row0 = table.row(0)
         assert ObjectUtils.NULL == row0.patronId
@@ -186,7 +188,7 @@ class EzproxyServiceSpec extends Specification {
         assert "foo" == row9.patronId
         assert "124.193.247.47" == row0.ipAddress
         assert "56.110.98.79" == row9.ipAddress
-        def response = tool.writerResponse
+        def response = service.writerResponse
         assert 2 == response.invalidTotal
         assert 10 == response.writtenTotal
         assert 12 == response.total

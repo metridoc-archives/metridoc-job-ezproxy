@@ -10,10 +10,6 @@ import metridoc.core.services.RunnableService
 import metridoc.writers.EntityIteratorWriter
 import metridoc.writers.IteratorWriter
 import metridoc.writers.WriteResponse
-import org.apache.camel.component.file.GenericFile
-import org.apache.camel.component.file.GenericFileFilter
-import org.hibernate.Query
-import org.hibernate.Session
 
 import java.util.zip.GZIPInputStream
 
@@ -43,51 +39,65 @@ class EzproxyService extends RunnableService {
     def entityClass
     String camelUrl
     boolean preview
+    HibernateService hibernateService
 
     @Override
     def configure() {
-        assert entityClass : "entityClass cannot be null"
-        def hibernateTool
-        if (!preview) {
-            log.info "booting up hibernate with entity $entityClass"
-            hibernateTool = includeService(HibernateService, entityClasses: [getEntityClass()])
+        target(validateInputs: "validates inputs to the job") {
+            validateInputs()
         }
 
-        validateInputs()
-        target(processEzproxyFile: "default target for processing ezproxy file") {
-            def camelService = includeService(CamelService)
-            processFile {
-                def inputStream = file.newInputStream()
-                def fileName = file.name
-                if(fileName.endsWith(".gz")) {
-                    inputStream = new GZIPInputStream(inputStream)
-                }
-
-                def ezIterator = includeService(EzproxyIteratorService, inputStream: inputStream, file: file)
-
-                if(preview) {
-                    ezIterator.preview()
-                    return
-                }
-                if(!writer) {
-                    writer = new EntityIteratorWriter(recordEntityClass: entityClass)
-                }
-                if (writer instanceof EntityIteratorWriter) {
-                    writer.sessionFactory = hibernateTool.sessionFactory
-                }
-                writerResponse = writer.write(ezIterator)
-                if(writerResponse.fatalErrors) {
-                    throw writerResponse.fatalErrors[0]
-                }
-            }
-            camelService.close()
+        target(processEzproxyFile: "default target for processing ezproxy file", depends:"validateInputs") {
+            processEzproxyFile()
         }
 
         setDefaultTarget("processEzproxyFile")
     }
 
+    EzproxyIteratorService createIterator() {
+
+    }
+
+    private void preview() {
+
+    }
+
+    private void processEzproxyFile() {
+        def camelService = includeService(CamelService)
+        processFile {
+            def inputStream = file.newInputStream()
+            def fileName = file.name
+            if (fileName.endsWith(".gz")) {
+                inputStream = new GZIPInputStream(inputStream)
+            }
+
+            def ezIterator = includeService(EzproxyIteratorService, inputStream: inputStream, file: file)
+
+            if (preview) {
+                ezIterator.preview()
+                return
+            }
+            if (!writer) {
+                writer = new EntityIteratorWriter(recordEntityClass: entityClass)
+            }
+            if (writer instanceof EntityIteratorWriter) {
+                writer.sessionFactory = hibernateTool.sessionFactory
+            }
+            writerResponse = writer.write(ezIterator)
+            if (writerResponse.fatalErrors) {
+                throw writerResponse.fatalErrors[0]
+            }
+        }
+        camelService.close()
+    }
+
     protected void validateInputs() {
-        println this
+        assert entityClass : "entityClass cannot be null"
+        if (!preview) {
+            log.info "booting up hibernate with entity $entityClass"
+            hibernateService = includeService(HibernateService, entityClasses: [getEntityClass()])
+        }
+
         if (!file) {
             assert fileFilter: FILE_FILTER_IS_NULL
             assert directory || camelUrl: EZ_DIRECTORY_IS_NULL
@@ -113,7 +123,7 @@ class EzproxyService extends RunnableService {
         def camelService = includeService(CamelService)
         def doesNotHaveFilter = !camelService.camelContext.registry.lookupByName("ezproxyFileFilter")
         if (doesNotHaveFilter) {
-            def fileFilter = includeService(EzproxyFileFilter, entityClass: entityClass, preview: preview)
+            def fileFilter = includeService(EzproxyFileFilter, entityClass: entityClass, preview: preview, file: file)
             camelService.bind("ezproxyFileFilter", fileFilter)
         }
 
