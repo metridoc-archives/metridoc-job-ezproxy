@@ -1,4 +1,4 @@
-package metridoc.ezproxy
+package metridoc.ezproxy.entities
 
 import metridoc.ezproxy.entities.EzproxyHosts
 import spock.lang.Specification

@@ -6,7 +6,7 @@ import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.Table
 import javax.persistence.UniqueConstraint
-import static metridoc.ezproxy.TruncateUtils.*
+import static metridoc.ezproxy.utils.TruncateUtils.*
 
 /**
  * Created with IntelliJ IDEA on 7/2/13

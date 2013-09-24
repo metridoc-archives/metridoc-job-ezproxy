@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory
 
 import javax.persistence.Column
 import javax.persistence.MappedSuperclass
-import static metridoc.ezproxy.TruncateUtils.*
+import static metridoc.ezproxy.utils.TruncateUtils.*
 
 /**
  * Created with IntelliJ IDEA on 7/2/13

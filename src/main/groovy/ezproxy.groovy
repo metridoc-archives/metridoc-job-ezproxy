@@ -1,7 +1,7 @@
 import metridoc.core.MetridocScript
 import metridoc.core.tools.ParseArgsTool
-import metridoc.ezproxy.EzproxyService
-import metridoc.ezproxy.ResolveDoisService
+import metridoc.ezproxy.services.EzproxyService
+import metridoc.ezproxy.services.ResolveDoisService
 import metridoc.ezproxy.entities.EzDoi
 import metridoc.ezproxy.entities.EzproxyHosts
 

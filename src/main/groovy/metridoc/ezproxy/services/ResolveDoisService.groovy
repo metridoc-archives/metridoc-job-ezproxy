@@ -1,8 +1,9 @@
-package metridoc.ezproxy
+package metridoc.ezproxy.services
 
 import metridoc.core.InjectArgBase
 import metridoc.core.services.DefaultService
 import metridoc.core.services.HibernateService
+import metridoc.ezproxy.utils.TruncateUtils
 import metridoc.ezproxy.entities.EzDoi
 import metridoc.ezproxy.entities.EzDoiJournal
 import org.hibernate.Session

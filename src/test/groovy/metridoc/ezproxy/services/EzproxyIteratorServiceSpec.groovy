@@ -1,5 +1,6 @@
-package metridoc.ezproxy
+package metridoc.ezproxy.services
 
+import metridoc.ezproxy.services.EzproxyIteratorService
 import metridoc.iterators.Record
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
@@ -9,7 +10,7 @@ import spock.lang.Specification
  * Created with IntelliJ IDEA on 7/2/13
  * @author Tommy Barker
  */
-class EzproxyIteratorSpec extends Specification {
+class EzproxyIteratorServiceSpec extends Specification {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder()

@@ -1,8 +1,9 @@
-package metridoc.ezproxy
+package metridoc.ezproxy.services
 
 import com.google.common.collect.Table
 import metridoc.core.MetridocScript
 import metridoc.ezproxy.entities.EzproxyHosts
+import metridoc.ezproxy.services.EzproxyService
 import metridoc.writers.TableIteratorWriter
 import org.apache.commons.lang.ObjectUtils
 import org.junit.Rule
@@ -12,7 +13,7 @@ import spock.lang.Timeout
 
 import java.util.zip.GZIPOutputStream
 
-import static EzproxyService.*
+import static metridoc.ezproxy.services.EzproxyService.*
 
 /**
  * Created with IntelliJ IDEA on 6/14/13

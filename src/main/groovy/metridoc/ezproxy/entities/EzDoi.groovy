@@ -7,7 +7,7 @@ import javax.persistence.Entity
 import javax.persistence.Table
 import javax.persistence.UniqueConstraint
 import java.util.regex.Pattern
-import static metridoc.ezproxy.TruncateUtils.*
+import static metridoc.ezproxy.utils.TruncateUtils.*
 
 /**
  * Created with IntelliJ IDEA on 7/12/13

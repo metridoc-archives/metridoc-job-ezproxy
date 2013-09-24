@@ -1,4 +1,4 @@
-package metridoc.ezproxy
+package metridoc.ezproxy.services
 
 import groovy.util.logging.Slf4j
 import groovy.xml.QName
