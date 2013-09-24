@@ -41,10 +41,8 @@ class EzproxyServiceSpec extends Specification {
         }
     }
 
-    @Timeout(5)
+    @Timeout(10)
     def "if no file exists the service should not choke"() {
-        given: "an empty folder"
-
         when: "I call the service on the empty folder"
         service.execute()
 
