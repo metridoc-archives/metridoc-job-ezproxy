@@ -3,9 +3,10 @@ package metridoc.ezproxy
 import groovy.transform.ToString
 import groovy.util.logging.Slf4j
 import metridoc.core.InjectArg
-import metridoc.core.tools.CamelTool
-import metridoc.core.tools.HibernateTool
-import metridoc.core.tools.RunnableTool
+import metridoc.core.InjectArgBase
+import metridoc.core.services.CamelService
+import metridoc.core.services.HibernateService
+import metridoc.core.services.RunnableService
 import metridoc.writers.EntityIteratorWriter
 import metridoc.writers.IteratorWriter
 import metridoc.writers.WriteResponse
@@ -23,18 +24,16 @@ import java.util.zip.GZIPInputStream
 @SuppressWarnings("GrMethodMayBeStatic")
 @Slf4j
 @ToString(includePackage = false, includeNames = true)
-class EzproxyTool extends RunnableTool {
+@InjectArgBase("ezproxy")
+class EzproxyService extends RunnableService {
     public static final String FILE_FILTER_IS_NULL = "ezproxy file filter cannot be null"
     public static final String EZ_DIRECTORY_IS_NULL = 'ezproxy directory or camelUrl must not be null'
     public static final String DEFAULT_FILE_FILTER = "ezproxy*"
     public static final Closure<String> EZ_DIRECTORY_DOES_NOT_EXISTS = { "ezproxy directory ${it} does not exist" as String }
     public static final Closure<String> EZ_FILE_DOES_NOT_EXIST = { "ezproxy file $it does not exist" as String }
 
-    @InjectArg(config = "ezproxy.fileFilter")
     String fileFilter = DEFAULT_FILE_FILTER
-    @InjectArg(config = "ezproxy.directory")
     File directory
-    @InjectArg(config = "ezproxy.file")
     File file
     @InjectArg(ignore = true)
     IteratorWriter writer
@@ -42,24 +41,21 @@ class EzproxyTool extends RunnableTool {
     WriteResponse writerResponse
     @InjectArg(ignore = true)
     def entityClass
-    @InjectArg(config = "ezproxy.camelUrl")
     String camelUrl
-    @InjectArg(config = "ezproxy.preview")
     boolean preview
 
     @Override
     def configure() {
-
         assert entityClass : "entityClass cannot be null"
         def hibernateTool
         if (!preview) {
             log.info "booting up hibernate with entity $entityClass"
-            hibernateTool = includeTool(HibernateTool, entityClasses: [getEntityClass()])
+            hibernateTool = includeService(HibernateService, entityClasses: [getEntityClass()])
         }
 
         validateInputs()
         target(processEzproxyFile: "default target for processing ezproxy file") {
-            def camelTool = includeTool(CamelTool)
+            def camelService = includeService(CamelService)
             processFile {
                 def inputStream = file.newInputStream()
                 def fileName = file.name
@@ -67,7 +63,7 @@ class EzproxyTool extends RunnableTool {
                     inputStream = new GZIPInputStream(inputStream)
                 }
 
-                def ezIterator = includeTool(EzproxyIterator, inputStream: inputStream, file: file)
+                def ezIterator = includeService(EzproxyIteratorService, inputStream: inputStream, file: file)
 
                 if(preview) {
                     ezIterator.preview()
@@ -84,7 +80,7 @@ class EzproxyTool extends RunnableTool {
                     throw writerResponse.fatalErrors[0]
                 }
             }
-            camelTool.close()
+            camelService.close()
         }
 
         setDefaultTarget("processEzproxyFile")
@@ -103,19 +99,6 @@ class EzproxyTool extends RunnableTool {
         }
     }
 
-    boolean acceptFile(String fileName) {
-        if(preview) return true
-        def result
-        def hibernateTool = getVariable("hibernateTool", HibernateTool)
-        hibernateTool.withTransaction {Session session ->
-            Query query = session.createQuery("from ${entityClass.simpleName} where fileName = :fileName")
-                    .setParameter("fileName", fileName)
-            result = query.list()
-        }
-
-        return result.size() ==  0
-    }
-
     protected processFile(Closure closure) {
         if(file) {
             assert file.exists() : "$file does not exist"
@@ -127,30 +110,16 @@ class EzproxyTool extends RunnableTool {
         if (directory) {
             fileUrl = "${directory.toURI().toURL()}?noop=true&readLockTimeout=${readLockTimeout}&antInclude=${fileFilter}&sendEmptyMessageWhenIdle=true&filter=#ezproxyFileFilter"
         }
-        def camelTool = includeTool(CamelTool)
-        def doesNotHaveFilter = !camelTool.camelContext.registry.lookupByName("ezproxyFileFilter")
+        def camelService = includeService(CamelService)
+        def doesNotHaveFilter = !camelService.camelContext.registry.lookupByName("ezproxyFileFilter")
         if (doesNotHaveFilter) {
-            camelTool.bind("ezproxyFileFilter",
-                    [
-                            accept: { GenericFile file ->
-                                try {
-                                    if(this.file) {
-                                        return file.fileNameOnly == this.file.name
-                                    }
-                                    acceptFile(file.fileName)
-                                }
-                                catch (Throwable throwable) {
-                                    log.error throwable.message
-                                    return false
-                                }
-                            }
-                    ] as GenericFileFilter
-            )
+            def fileFilter = includeService(EzproxyFileFilter, entityClass: entityClass, preview: preview)
+            camelService.bind("ezproxyFileFilter", fileFilter)
         }
 
         def usedUrl = camelUrl ?: fileUrl
         //this creates a file transaction
-        camelTool.consume(usedUrl) { File file ->
+        camelService.consume(usedUrl) { File file ->
             this.file = file
             if (this.file) {
                 log.info "processing file $file"

@@ -1,4 +1,4 @@
-package metridoc.ezproxy
+package metridoc.ezproxy.entities
 
 import metridoc.entities.MetridocRecordEntity
 import metridoc.iterators.Record

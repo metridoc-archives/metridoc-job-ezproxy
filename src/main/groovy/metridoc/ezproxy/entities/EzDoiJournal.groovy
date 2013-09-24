@@ -1,4 +1,4 @@
-package metridoc.ezproxy
+package metridoc.ezproxy.entities
 
 import org.hibernate.annotations.Index
 

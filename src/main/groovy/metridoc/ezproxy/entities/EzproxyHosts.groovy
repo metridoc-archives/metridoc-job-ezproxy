@@ -1,4 +1,4 @@
-package metridoc.ezproxy
+package metridoc.ezproxy.entities
 
 import metridoc.iterators.Record
 
@@ -44,7 +44,7 @@ class EzproxyHosts extends EzproxyBase {
                 "city"
         )
 
-        super.populate(record)
+        Object.populate(record)
     }
 
     @Override

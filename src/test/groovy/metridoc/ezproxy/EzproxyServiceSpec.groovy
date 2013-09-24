@@ -2,6 +2,7 @@ package metridoc.ezproxy
 
 import com.google.common.collect.Table
 import metridoc.core.MetridocScript
+import metridoc.ezproxy.entities.EzproxyHosts
 import metridoc.writers.TableIteratorWriter
 import org.apache.commons.lang.ObjectUtils
 import org.junit.Rule
@@ -11,17 +12,17 @@ import spock.lang.Timeout
 
 import java.util.zip.GZIPOutputStream
 
-import static EzproxyTool.*
+import static EzproxyService.*
 
 /**
  * Created with IntelliJ IDEA on 6/14/13
  * @author Tommy Barker
  */
-class EzproxyHostsToolSpec extends Specification {
+class EzproxyServiceSpec extends Specification {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder()
-    EzproxyTool tool
+    EzproxyService tool
 
     def setup() {
         def args = []
@@ -34,7 +35,7 @@ class EzproxyHostsToolSpec extends Specification {
         def binding = new Binding()
         binding.args = args as String[]
         use(MetridocScript) {
-            tool = binding.includeTool(EzproxyTool, directory: folder.root, writer: new TableIteratorWriter(),
+            tool = binding.includeTool(EzproxyService, directory: folder.root, writer: new TableIteratorWriter(),
                     entityClass:EzproxyHosts)
         }
     }
@@ -111,7 +112,7 @@ class EzproxyHostsToolSpec extends Specification {
         File file = folder.newFile("ezproxy.test")
         file.write(data, "utf-8")
 
-        and: "an EzproxyTool that is set to consume from that file"
+        and: "an EzproxyService that is set to consume from that file"
         tool.file = file
 
         when: "the file is consumed"
@@ -128,7 +129,7 @@ class EzproxyHostsToolSpec extends Specification {
             writer.write(data)
         }
 
-        and: "an EzproxyTool that is set to consume from that file"
+        and: "an EzproxyService that is set to consume from that file"
         tool.file = file
 
         when: "the file is consumed"
@@ -138,7 +139,7 @@ class EzproxyHostsToolSpec extends Specification {
         testData()
     }
 
-    static Table executeTool(EzproxyTool tool) {
+    static Table executeTool(EzproxyService tool) {
         tool.execute()
         Table response = tool.writerResponse as Table
         response
@@ -157,7 +158,7 @@ class EzproxyHostsToolSpec extends Specification {
         def binding = new Binding()
         binding.args = args as String[]
         use(MetridocScript) {
-            tool = binding.includeTool(EzproxyTool, directory: folder.root, writer: new TableIteratorWriter(),
+            tool = binding.includeTool(EzproxyService, directory: folder.root, writer: new TableIteratorWriter(),
                     entityClass:EzproxyHosts)
         }
         File file = folder.newFile("ezproxy.test.gz")
@@ -165,7 +166,7 @@ class EzproxyHostsToolSpec extends Specification {
             writer.write(data)
         }
 
-        and: "an EzproxyTool that is set to consume from that file"
+        and: "an EzproxyService that is set to consume from that file"
         tool.file = file
 
         when: "the file is consumed"

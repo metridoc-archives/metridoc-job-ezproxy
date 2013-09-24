@@ -2,15 +2,15 @@ import metridoc.core.MetridocScript
 import metridoc.core.tools.HibernateTool
 import metridoc.core.tools.ParseArgsTool
 import metridoc.ezproxy.CrossRefTool
-import metridoc.ezproxy.EzDoi
-import metridoc.ezproxy.EzDoiJournal
-import metridoc.ezproxy.EzproxyHosts
-import metridoc.ezproxy.EzproxyTool
+import metridoc.ezproxy.entities.EzDoi
+import metridoc.ezproxy.entities.EzDoiJournal
+import metridoc.ezproxy.entities.EzproxyHosts
+import metridoc.ezproxy.EzproxyService
 import metridoc.ezproxy.TruncateUtils
 import org.hibernate.Session
 
 use(MetridocScript) {
-    includeTool(ParseArgsTool)
+    includeService(ParseArgsTool)
     assert argsMap: "no arguments were provided, run mdoc help ezproxy"
     def command = argsMap.params[0]
     def commands = ["processHosts", "processDois", "resolveDois"]
@@ -23,11 +23,11 @@ use(MetridocScript) {
 
     switch (command) {
         case "processHosts":
-            includeTool(entityClass: EzproxyHosts, EzproxyTool).execute()
+            includeService(entityClass: EzproxyHosts, EzproxyService).execute()
             return
         case "processDois":
             println "processing dois"
-            includeTool(entityClass: EzDoi, EzproxyTool).execute()
+            includeService(entityClass: EzDoi, EzproxyService).execute()
             return
         case "resolveDois":
             println "resolving dois"
@@ -38,7 +38,7 @@ use(MetridocScript) {
 
 void resolveDois() {
     use(MetridocScript) {
-        def hibernateTool = includeTool(entityClasses: [EzDoiJournal, EzDoi], HibernateTool)
+        def hibernateTool = includeService(entityClasses: [EzDoiJournal, EzDoi], HibernateTool)
         def count = argsMap.doiResolutionCount ?: 2000
 
         hibernateTool.withTransaction { Session session ->
@@ -53,7 +53,7 @@ void resolveDois() {
                 println "there are no dois to process"
             }
 
-            CrossRefTool crossRefTool = includeTool(CrossRefTool)
+            CrossRefTool crossRefTool = includeService(CrossRefTool)
             int counter = 0
             ezDois.each { EzDoi ezDoi ->
                 counter++

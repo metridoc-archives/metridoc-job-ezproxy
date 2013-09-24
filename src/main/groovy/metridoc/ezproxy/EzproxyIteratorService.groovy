@@ -2,6 +2,7 @@ package metridoc.ezproxy
 
 import groovy.util.logging.Slf4j
 import metridoc.core.InjectArg
+import metridoc.core.InjectArgBase
 import metridoc.core.tools.Tool
 import metridoc.iterators.FileIterator
 import metridoc.iterators.Record
@@ -15,40 +16,25 @@ import org.apache.commons.io.LineIterator
  *
  */
 @Slf4j
-class EzproxyIterator extends FileIterator implements Tool {
+@InjectArgBase("ezproxy")
+class EzproxyIteratorService extends FileIterator implements Tool {
     public static final transient APACHE_NULL = "-"
-    @InjectArg(config = "ezproxy.encryptPatronId")
     boolean encryptPatronId = false
-    @InjectArg(config = "ezproxy.encryptIpAddress")
     boolean encryptIpAddress = false
-    @InjectArg(config = "ezproxy.patronId")
     int patronId = -1
-    @InjectArg(config = "ezproxy.country")
     int country = -1
-    @InjectArg(config = "ezproxy.ipAddress")
     int ipAddress = -1
-    @InjectArg(config = "ezproxy.state")
     int state = -1
-    @InjectArg(config = "ezproxy.city")
     int city = -1
-    @InjectArg(config = "ezproxy.rank")
     int rank = -1
-    @InjectArg(config = "ezproxy.department")
     int department = -1
-    @InjectArg(config = "ezproxy.ezproxyId")
     int ezproxyId = -1
-    @InjectArg(config = "ezproxy.url")
     int url = -1
-    @InjectArg(config = "ezproxy.proxyDate")
     int proxyDate = -1
-    @InjectArg(config = "ezproxy.apacheNull")
     String apacheNull = APACHE_NULL
-    @InjectArg(config = "ezproxy.delimiter")
     String delimiter
-    @InjectArg(config = "ezproxy.maxLines")
     int maxLines = 0
 
-    @InjectArg(config = "ezproxy.parser")
     Closure parser = {String line ->
         String[] items = line.split(delimiter)
         def record = new Record()
@@ -71,7 +57,6 @@ class EzproxyIterator extends FileIterator implements Tool {
         }
         return record
     }
-    @InjectArg(config = "ezproxy.encoding")
     String encoding = "utf-8"
     //so we can get the line if there is a failure
     @InjectArg(ignore = true)
