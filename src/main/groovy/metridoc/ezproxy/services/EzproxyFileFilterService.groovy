@@ -30,7 +30,11 @@ class EzproxyFileFilterService implements GenericFileFilter {
             if(this.file) {
                 return file.fileNameOnly == this.file.name
             }
+
             if(preview) return true
+
+            assert entityClass && hibernateService : "entityClass and hibernateService must not be null"
+
             def result
             hibernateService.withTransaction {Session session ->
                 Query query = session.createQuery("from ${entityClass.simpleName} where fileName = :fileName")

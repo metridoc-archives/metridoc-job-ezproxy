@@ -2,8 +2,7 @@ package metridoc.ezproxy.services
 
 import com.google.common.collect.Table
 import metridoc.core.MetridocScript
-import metridoc.ezproxy.entities.EzproxyHosts
-import metridoc.writers.TableIteratorWriter
+import metridoc.iterators.Iterators
 import org.apache.commons.lang.ObjectUtils
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
@@ -33,17 +32,25 @@ class EzproxyServiceSpec extends Specification {
         args.add "-patronId=5"
         args.add "-ipAddress=0"
         args.add "-mergeMetridocConfig=false"
+        setupService(args)
+    }
+
+    void setupService(List args) {
         def binding = new Binding()
         binding.args = args as String[]
         use(MetridocScript) {
-            service = binding.includeTool(EzproxyService, directory: folder.root, writer: new TableIteratorWriter(),
-                    entityClass:EzproxyHosts)
+            service = binding.includeService(EzproxyWireService).wireupServices()
         }
+        service.writer = Iterators.createWriter("table")
+        //stops hibernate from booting up
+        binding.ezproxyFileFilterService.preview = true
     }
 
     @Timeout(10)
     def "if no file exists the service should not choke"() {
         when: "I call the service on the empty folder"
+        folder.newFolder("empty")
+        service.directory = new File(folder.root, "empty")
         service.execute()
 
         then: "it should not fail or hang"
@@ -115,7 +122,7 @@ class EzproxyServiceSpec extends Specification {
         service.file = file
 
         when: "the file is consumed"
-        executeService(service)
+        executeTool(service)
 
         then: "the response is filled with appropriate data"
         testData()
@@ -138,7 +145,7 @@ class EzproxyServiceSpec extends Specification {
         testData()
     }
 
-    static Table executeService(EzproxyService service) {
+    static Table executeTool(EzproxyService service) {
         service.execute()
         Table response = service.writerResponse as Table
         response
@@ -155,12 +162,9 @@ class EzproxyServiceSpec extends Specification {
         args.add "-ipAddress=0"
         args.add "-maxLines=3"
         args.add "-mergeMetridocConfig=false"
-        def binding = new Binding()
-        binding.args = args as String[]
-        use(MetridocScript) {
-            service = binding.includeTool(EzproxyService, directory: folder.root, writer: new TableIteratorWriter(),
-                    entityClass:EzproxyHosts)
-        }
+
+        setupService(args)
+
         File file = folder.newFile("ezproxy.test.gz")
         new GZIPOutputStream(file.newOutputStream()).withWriter("utf-8") { Writer writer ->
             writer.write(data)

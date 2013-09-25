@@ -25,8 +25,8 @@ Options By Job
 
         -file       the file to process
 
-        -directory  the directory of ezproxy files to process.  Only one file per
-                    run will be processed
+        -directory  the directory of ezproxy files to process.  Only one file
+                    per run will be processed
 
         -url        a camel url that handles files such as sftp. One file from
                     location is processed
@@ -50,4 +50,12 @@ Options By Job
 
         patronId, country, ipAddress, state, city, rank, department, ezproxyId,
         url, proxyDate
+
+Example Call
+------------
+
+    mdoc ezproxy processHosts -directory=/Work/sampleEzproxyLogs \
+        -delimiter='\|\|' -ezproxyId=13 -ipAddress=0 -url=8 -country=3 \
+        -city=1 -patronId=5 -proxyDate=6 -state=2 -fileFilter=ezproxy.log.* \
+        -stacktrace -localMysql
 
