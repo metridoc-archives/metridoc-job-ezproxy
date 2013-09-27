@@ -3,6 +3,19 @@ sourceCompatibility = "1.6"
 targetCompatibility = "1.6"
 project.version = "0.1"
 project.group = "com.github.metridoc"
+apply plugin: "metridoc"
+
+buildscript {
+    repositories {
+        maven {
+            url = "http://dl.bintray.com/upennlib/metridoc"
+        }
+    }
+
+    dependencies {
+        classpath "com.github.metridoc:metridoc-gradle-plugin:0.2.10"
+    }
+}
 
 repositories {
     mavenCentral()
@@ -22,8 +35,3 @@ dependencies {
     testCompile 'org.spockframework:spock-core:0.7-groovy-2.0',
         'org.slf4j:slf4j-simple:1.7.5'
 }
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '1.7'
-}
-
