@@ -122,7 +122,7 @@ class EzproxyServiceSpec extends Specification {
         service.file = file
 
         when: "the file is consumed"
-        executeTool(service)
+        executeService(service)
 
         then: "the response is filled with appropriate data"
         testData()
@@ -145,7 +145,7 @@ class EzproxyServiceSpec extends Specification {
         testData()
     }
 
-    static Table executeTool(EzproxyService service) {
+    static Table executeService(EzproxyService service) {
         service.execute()
         Table response = service.writerResponse as Table
         response
