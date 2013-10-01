@@ -16,6 +16,9 @@ Available Jobs
   resolveDois   iterates through all dois that have been ingested and attempts
                 to resolve bibliographic information from cross ref
 
+  dropTables    drops all loading tables.  Sometimes this is needed after
+                upgrades to deal with changing schemas
+
 Options By Job
 --------------
 

@@ -6,6 +6,7 @@ import metridoc.core.services.CamelService
 import metridoc.core.services.DefaultService
 import metridoc.core.services.HibernateService
 import metridoc.writers.EntityIteratorWriter
+import org.hibernate.Session
 
 import java.util.zip.GZIPInputStream
 
@@ -19,6 +20,7 @@ class EzproxyIngestService extends DefaultService {
 
     EzproxyService ezproxyService
     CamelService camelService
+    boolean preview
 
     void ingestData() {
 
@@ -26,6 +28,7 @@ class EzproxyIngestService extends DefaultService {
 
         processFile {
             ezproxyService.with {
+                ezproxyIterator.validateInputs()
                 if (preview) {
                     ezproxyIterator.preview()
                     return
@@ -47,9 +50,15 @@ class EzproxyIngestService extends DefaultService {
             }
 
             if (writer instanceof EntityIteratorWriter && !preview) {
-                def hibernateService = includeService(HibernateService, entityClasses: [entityClass])
+                def hibernateService = includeService(HibernateService)
+                hibernateService.enableFor(entityClass)
                 writer.sessionFactory = hibernateService.sessionFactory
+                hibernateService.withTransaction { Session session ->
+                    def url = session.connection().metaData.getURL()
+                    log.info "connecting to ${url}"
+                }
             }
+
         }
     }
 
@@ -57,14 +66,12 @@ class EzproxyIngestService extends DefaultService {
         def ezproxyIteratorService = getVariable("ezproxyIteratorService", EzproxyIteratorService)
         if (ezproxyIteratorService) return ezproxyIteratorService
 
-        ezproxyService.with {
-            def inputStream = file.newInputStream()
-            def fileName = file.name
-            if (fileName.endsWith(".gz")) {
-                inputStream = new GZIPInputStream(inputStream)
-            }
-            return includeService(EzproxyIteratorService, inputStream: inputStream, file: file)
+        def inputStream = ezproxyService.file.newInputStream()
+        def fileName = ezproxyService.file.name
+        if (fileName.endsWith(".gz")) {
+            inputStream = new GZIPInputStream(inputStream)
         }
+        return includeService(EzproxyIteratorService, inputStream: inputStream, file: ezproxyService.file)
     }
 
     protected processFile(Closure closure) {

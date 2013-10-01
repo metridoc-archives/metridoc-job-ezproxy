@@ -55,4 +55,21 @@ class EzproxyIteratorServiceSpec extends Specification {
         then: "an AssertionError is thrown"
         record.throwable instanceof AssertionError
     }
+
+    def "test cases where target file makes no sense and we are doing a preview"() {
+        given:
+        def badFile = folder.newFile("badFile.log")
+        badFile.withPrintWriter {writer ->
+            writer.println("lkjhasdflkjh")
+            writer.println("lkjhas||dflkjh")
+        }
+
+        when:
+        new EzproxyIteratorService(
+                inputStream: badFile.newInputStream()
+        ).preview()
+
+        then:
+        thrown(AssertionError)
+    }
 }

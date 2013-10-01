@@ -4,7 +4,7 @@ import groovy.transform.ToString
 import groovy.util.logging.Slf4j
 import metridoc.core.InjectArg
 import metridoc.core.InjectArgBase
-import metridoc.core.services.RunnableService
+import metridoc.core.Step
 import metridoc.writers.IteratorWriter
 import metridoc.writers.WriteResponse
 
@@ -16,7 +16,7 @@ import metridoc.writers.WriteResponse
 @Slf4j
 @ToString(includePackage = false, includeNames = true)
 @InjectArgBase("ezproxy")
-class EzproxyService extends RunnableService {
+class EzproxyService {
     public static final String FILE_FILTER_IS_NULL = "ezproxy file filter cannot be null"
     public static final String EZ_DIRECTORY_IS_NULL = 'ezproxy directory or camelUrl must not be null'
     public static final String DEFAULT_FILE_FILTER = "ezproxy*"
@@ -33,32 +33,20 @@ class EzproxyService extends RunnableService {
     @InjectArg(ignore = true)
     def entityClass
     String camelUrl
-    boolean preview
     EzproxyIngestService ezproxyIngestService
 
-    @Override
-    def configure() {
-        step(validateInputs: "validates inputs to the job")
-        step(preview: "previews data", depends: "validateInputs")
-        step(processEzproxyFile: "default target for processing ezproxy file", depends:"validateInputs")
-
-        if(preview) {
-            setDefaultTarget("preview")
-        }
-        else {
-            setDefaultTarget("processEzproxyFile")
-        }
-    }
-
-    private void preview() {
+    @Step(description = "previews the data", depends = "validateInputs")
+    void preview() {
         processEzproxyFile()
     }
 
-    private void processEzproxyFile() {
+    @Step(description = "processes an ezproxy file", depends = "validateInputs")
+    void processEzproxyFile() {
         ezproxyIngestService.ingestData()
     }
 
-    protected void validateInputs() {
+    @Step(description = "validates the inputs to the job")
+    void validateInputs() {
         if (!file) {
             assert fileFilter: FILE_FILTER_IS_NULL
             assert directory || camelUrl: EZ_DIRECTORY_IS_NULL
