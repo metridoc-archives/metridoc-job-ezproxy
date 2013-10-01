@@ -27,7 +27,7 @@ abstract class EzproxyBase extends MetridocRecordEntity {
     Integer proxyYear
     @Column(name = "proxy_day", nullable = false)
     Integer proxyDay
-    @Column(name = "ezproxy_id", nullable = false)
+    @Column(name = "ezproxy_id", nullable = false, length = 50)
     @Index(name = "idx_ezproxy_id_url_host")
     String ezproxyId
     @Column(name = "file_name", nullable = false)

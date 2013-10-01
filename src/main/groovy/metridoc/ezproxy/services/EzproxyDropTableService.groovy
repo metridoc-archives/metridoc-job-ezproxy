@@ -3,7 +3,8 @@ package metridoc.ezproxy.services
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
 import metridoc.core.Step
-import metridoc.core.services.RunnableService
+
+import javax.sql.DataSource
 
 /**
  * Created with IntelliJ IDEA on 9/25/13
@@ -11,13 +12,14 @@ import metridoc.core.services.RunnableService
  */
 @Slf4j
 class EzproxyDropTableService {
-    Sql sql
+    DataSource dataSource
+
     boolean stacktrace
 
     @Step(description = "drops all ezproxy tables")
     void dropTables() {
-        assert sql : "A data source has not been set, cannot drop tables"
-
+        assert dataSource : "A data source has not been set, cannot drop tables"
+        def sql = new Sql(dataSource)
         ["ez_doi_journal", "ez_doi", "ez_hosts"].each {
             try {
                 sql.execute("drop table $it" as String)
