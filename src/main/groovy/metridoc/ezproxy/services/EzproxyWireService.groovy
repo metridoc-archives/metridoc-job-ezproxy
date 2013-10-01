@@ -1,6 +1,7 @@
 package metridoc.ezproxy.services
 
 import metridoc.core.services.CamelService
+import metridoc.core.services.ConfigService
 import metridoc.core.services.DefaultService
 import metridoc.core.services.HibernateService
 
@@ -18,6 +19,7 @@ class EzproxyWireService extends DefaultService {
     }
 
     EzproxyService wireupServices(Class ezproxyIngestClass) {
+        includeService(ConfigService)
         if (!preview) {
             includeService(HibernateService, entityClasses: [ezproxyIngestClass])
         }

@@ -71,7 +71,8 @@ class EzproxyIngestService extends DefaultService {
         if (fileName.endsWith(".gz")) {
             inputStream = new GZIPInputStream(inputStream)
         }
-        return includeService(EzproxyIteratorService, inputStream: inputStream, file: ezproxyService.file)
+        def service = includeService(EzproxyIteratorService, inputStream: inputStream, file: ezproxyService.file)
+        return service
     }
 
     protected processFile(Closure closure) {

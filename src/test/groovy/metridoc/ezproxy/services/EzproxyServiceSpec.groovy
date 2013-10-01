@@ -38,9 +38,7 @@ class EzproxyServiceSpec extends Specification {
     void setupService(List args) {
         def binding = new Binding()
         binding.args = args as String[]
-        use(MetridocScript) {
-            service = binding.includeService(EzproxyWireService).wireupServices()
-        }
+        service = binding.includeService(EzproxyWireService).wireupServices()
         service.writer = Iterators.createWriter("table")
         //stops hibernate from booting up
         binding.ezproxyFileFilterService.preview = true
@@ -51,7 +49,7 @@ class EzproxyServiceSpec extends Specification {
         when: "I call the service on the empty folder"
         folder.newFolder("empty")
         service.directory = new File(folder.root, "empty")
-        service.execute()
+        service.processEzproxyFile()
 
         then: "it should not fail or hang"
         notThrown(Throwable)
@@ -139,14 +137,14 @@ class EzproxyServiceSpec extends Specification {
         service.file = file
 
         when: "the file is consumed"
-        service.execute()
+        service.processEzproxyFile()
 
         then: "the response is filled with appropriate data"
         testData()
     }
 
     static Table executeService(EzproxyService service) {
-        service.execute()
+        service.processEzproxyFile()
         Table response = service.writerResponse as Table
         response
     }
@@ -174,7 +172,7 @@ class EzproxyServiceSpec extends Specification {
         service.file = file
 
         when: "the file is consumed"
-        service.execute()
+        service.processEzproxyFile()
 
         then: "the response is filled with appropriate data"
         Table table = service.writerResponse as Table
