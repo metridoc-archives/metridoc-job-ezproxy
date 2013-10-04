@@ -6,6 +6,7 @@ import metridoc.core.services.CamelService
 import metridoc.core.services.DefaultService
 import metridoc.core.services.HibernateService
 import metridoc.writers.EntityIteratorWriter
+import org.apache.camel.util.URISupport
 import org.hibernate.Session
 
 import java.util.zip.GZIPInputStream
@@ -81,6 +82,7 @@ class EzproxyIngestService extends DefaultService {
         ezproxyService.with {
             def usedUrl = camelUrl ?: fileUrl
             //this creates a file transaction
+            log.info "consuming from [${URISupport.sanitizeUri(usedUrl)}]"
             camelService.consume(usedUrl) { File file ->
                 ezproxyService.file = file
                 if (ezproxyService.file) {
