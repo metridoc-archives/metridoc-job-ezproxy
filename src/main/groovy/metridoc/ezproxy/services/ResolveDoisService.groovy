@@ -61,7 +61,7 @@ class ResolveDoisService extends RunnableService {
 
                         def chosenValue = response."$key"
                         if (chosenValue instanceof String) {
-                            chosenValue = TruncateUtils.truncate(chosenValue)
+                            chosenValue = TruncateUtils.truncate(chosenValue, TruncateUtils.DEFAULT_VARCHAR_LENGTH)
                         }
 
                         ezJournal."$key" = chosenValue
