@@ -33,7 +33,7 @@ class EzDoi extends EzproxyBase {
     @Override
     void populate(Record record) {
         def body = record.body
-        doi = extractDoi(body.url)
+        record.body.doi = extractDoi(body.url)
         truncateProperties(record, "doi")
         super.populate(record)
     }
