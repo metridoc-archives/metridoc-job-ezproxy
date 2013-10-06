@@ -4,6 +4,7 @@ import metridoc.core.services.CamelService
 import metridoc.core.services.ConfigService
 import metridoc.core.services.DefaultService
 import metridoc.core.services.HibernateService
+import metridoc.core.services.ParseArgsService
 
 /**
  * Created with IntelliJ IDEA on 9/24/13
@@ -19,7 +20,11 @@ class EzproxyWireService extends DefaultService {
     }
 
     EzproxyService wireupServices(Class ezproxyIngestClass) {
-        includeService(ConfigService)
+        includeService(ParseArgsService)
+        boolean mergeConfig = binding.argsMap.mergeMetridocConfig ? Boolean.valueOf(binding.argsMap.mergeMetridocConfig) : true
+
+        includeService(ConfigService, mergeMetridocConfig:mergeConfig)
+
         if (!preview) {
             includeService(HibernateService, entityClasses: [ezproxyIngestClass])
         }
