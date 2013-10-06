@@ -13,7 +13,7 @@ class EzproxyWireServiceSpec extends Specification {
         def wireService = new EzproxyWireService(preview: true)
 
         when:
-        def ezproxyService = wireService.wireupServices()
+        def ezproxyService = wireService.wireupNonConfigServices(null)
 
         then:
         noExceptionThrown()

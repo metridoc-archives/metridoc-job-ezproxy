@@ -25,6 +25,10 @@ class EzproxyWireService extends DefaultService {
 
         includeService(ConfigService, mergeMetridocConfig:mergeConfig)
 
+        wireupNonConfigServices(ezproxyIngestClass)
+    }
+
+    protected EzproxyService wireupNonConfigServices(Class ezproxyIngestClass) {
         if (!preview) {
             includeService(HibernateService, entityClasses: [ezproxyIngestClass])
         }
@@ -36,4 +40,6 @@ class EzproxyWireService extends DefaultService {
         includeService(EzproxyIngestService)
         includeService(EzproxyService, entityClass: ezproxyIngestClass)
     }
+
+
 }
