@@ -147,13 +147,10 @@ class EzproxyIteratorService extends FileIterator {
     @SuppressWarnings("GrMethodMayBeStatic")
     protected void validateUrl(String url) {
         try {
-            new URL(url).toURI()
+            new URL(url)
         }
-        catch (MalformedURLException malFormed) {
-            throw new AssertionError(malFormed)
-        }
-        catch (URISyntaxException syntaxException) {
-            throw new AssertionError(syntaxException)
+        catch (MalformedURLException ex) {
+            throw new AssertionError(ex)
         }
     }
 

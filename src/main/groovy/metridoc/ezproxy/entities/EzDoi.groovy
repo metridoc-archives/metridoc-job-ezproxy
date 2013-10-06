@@ -2,6 +2,7 @@ package metridoc.ezproxy.entities
 
 import metridoc.iterators.Record
 import org.hibernate.annotations.Index
+import org.slf4j.LoggerFactory
 
 import javax.persistence.Entity
 import javax.persistence.Table
@@ -33,25 +34,21 @@ class EzDoi extends EzproxyBase {
     @Override
     void populate(Record record) {
         def body = record.body
-        record.body.doi = extractDoi(body.url)
+        try {
+            record.body.doi = extractDoi(body.url)
+        }
+        catch (URISyntaxException e) {
+            def log = LoggerFactory.getLogger(EzDoi)
+            log.warn "Could not extract doi from $body.url", e
+        }
         truncateProperties(record, "doi")
         super.populate(record)
     }
 
     @Override
     void validate() {
-        ["doi"].each { property ->
-            def value = this."$property"
-            if (value instanceof Integer) {
-                assert value != null: "$property cannot be null"
-            }
-            else if (value instanceof String) {
-                assert notNull(value) : "$property cannot be null or empty"
-            }
-            else {
-                assert value: "$property cannot be null or empty"
-            }
-        }
+        assert notNull(doi) : "doi cannot be null or empty"
+        super.validate()
     }
 
     @Override
