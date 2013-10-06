@@ -39,6 +39,8 @@ class EzproxyServiceSpec extends Specification {
         def binding = new Binding()
         binding.args = args as String[]
         service = binding.includeService(EzproxyWireService).wireupServices()
+        assert !binding.configService.mergeMetridocConfig
+        assert null == service.camelUrl
         service.writer = Iterators.createWriter("table")
         //stops hibernate from booting up
         binding.ezproxyFileFilterService.preview = true
