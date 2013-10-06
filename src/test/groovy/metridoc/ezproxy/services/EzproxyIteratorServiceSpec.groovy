@@ -14,6 +14,29 @@ class EzproxyIteratorServiceSpec extends Specification {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder()
 
+    void "valid urls with invalid syntax are invalid"() {
+        given: "a valid url with bad uri syntax"
+        def url = "http://google.com/blah%2"
+
+        when:
+        new URL(url)
+
+        then:
+        noExceptionThrown()
+
+        when:
+        new URL(url).toURI()
+
+        then:
+        thrown(URISyntaxException)
+
+        when:
+        new EzproxyIteratorService().validateUrl(url)
+
+        then:
+        thrown(AssertionError)
+    }
+
     def "if result is empty or null an AssertionError will occur"() {
         given: "a file with a lot of lines"
         def file = folder.newFile("fileWithLotsOfLines")
