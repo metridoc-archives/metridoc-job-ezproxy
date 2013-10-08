@@ -37,7 +37,11 @@ class EzDoi extends EzproxyBase {
         try {
             record.body.doi = extractDoi(body.url)
         }
-        catch (URISyntaxException e) {
+        catch (Throwable throwable) {
+            /*
+                any number of issues could cause an exception.  We don't want to cause a failure though.  The doi will
+                just be null and the record considered invalid
+            */
             def log = LoggerFactory.getLogger(EzDoi)
             log.warn "Could not extract doi from $body.url", e
         }
