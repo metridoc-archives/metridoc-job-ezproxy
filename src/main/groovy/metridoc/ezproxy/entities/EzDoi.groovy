@@ -43,7 +43,7 @@ class EzDoi extends EzproxyBase {
                 just be null and the record considered invalid
             */
             def log = LoggerFactory.getLogger(EzDoi)
-            log.warn "Could not extract doi from $body.url", e
+            log.warn "Could not extract doi from $body.url", throwable
         }
         truncateProperties(record, "doi")
         super.populate(record)
@@ -51,6 +51,8 @@ class EzDoi extends EzproxyBase {
 
     @Override
     void validate() {
+
+
         assert notNull(doi) : "doi cannot be null or empty"
         super.validate()
     }
