@@ -21,6 +21,7 @@ class EzproxyIngestService extends DefaultService {
 
     EzproxyService ezproxyService
     CamelService camelService
+    long wait = 15000 //15 seconds
     boolean preview
 
     void ingestData() {
@@ -82,14 +83,18 @@ class EzproxyIngestService extends DefaultService {
         ezproxyService.with {
             def usedUrl = camelUrl ?: fileUrl
             //this creates a file transaction
-            log.info "consuming from [${URISupport.sanitizeUri(usedUrl)}]"
-            camelService.consume(usedUrl) { File file ->
+            def sanitizedUrl = URISupport.sanitizeUri(usedUrl)
+            log.info "consuming from [${sanitizedUrl}]"
+            boolean atLeastOneFileProcessed = false
+            camelService.consumeWait(usedUrl, wait) { File file ->
+                atLeastOneFileProcessed = true
                 ezproxyService.file = file
                 if (ezproxyService.file) {
                     log.info "processing file $file"
                     closure.call(ezproxyService.file)
                 }
             }
+            assert atLeastOneFileProcessed : "waited $wait milliseconds without success to consume a file from $sanitizedUrl, is the url correct?  If a remote url, are the connection parameters correct?"
         }
     }
 
