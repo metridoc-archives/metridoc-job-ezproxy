@@ -1,11 +1,11 @@
 package metridoc.ezproxy.services
 
 import metridoc.core.InjectArgBase
-import metridoc.core.services.HibernateService
 import metridoc.core.services.RunnableService
 import metridoc.ezproxy.entities.EzDoi
 import metridoc.ezproxy.entities.EzDoiJournal
 import metridoc.ezproxy.utils.TruncateUtils
+import metridoc.service.gorm.GormService
 import org.hibernate.Session
 
 /**
@@ -18,9 +18,9 @@ class ResolveDoisService extends RunnableService {
     int doiResolutionCount = 2000
 
     void resolveDois() {
-        def hibernateService = includeService(entityClasses: [EzDoiJournal, EzDoi], HibernateService)
+        def gormService = includeService(entityClasses: [EzDoiJournal, EzDoi], GormService)
 
-        hibernateService.withTransaction { Session session ->
+        gormService.withTransaction { Session session ->
 
             def q = session.createQuery("from EzDoi where processedDoi = false")
             q.setMaxResults(doiResolutionCount)

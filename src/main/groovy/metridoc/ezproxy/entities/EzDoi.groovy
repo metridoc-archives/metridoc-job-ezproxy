@@ -1,28 +1,20 @@
 package metridoc.ezproxy.entities
 
+import grails.persistence.Entity
 import metridoc.iterators.Record
-import org.hibernate.annotations.Index
 import org.slf4j.LoggerFactory
 
-import javax.persistence.Entity
-import javax.persistence.Table
-import javax.persistence.UniqueConstraint
 import java.util.regex.Pattern
-import static metridoc.ezproxy.utils.TruncateUtils.*
+
+import static metridoc.ezproxy.utils.TruncateUtils.truncateProperties
 
 /**
  * Created with IntelliJ IDEA on 7/12/13
  * @author Tommy Barker
  */
 @Entity
-@Table(name = "ez_doi",
-        uniqueConstraints = [
-            @UniqueConstraint(name = "ez_doi_ez_id_doi", columnNames = ["ezproxy_id", "doi"]),
-        ]
-)
 class EzDoi extends EzproxyBase {
 
-    @Index(name = "idx_doi")
     String doi
     Boolean processedDoi = false
     Boolean resolvableDoi = false
@@ -31,11 +23,22 @@ class EzDoi extends EzproxyBase {
     public static final transient DOI_PROPERTY_PATTERN = "doi=10."
     public static final transient  DOI_FULL_PATTERN = Pattern.compile(/10\.\d+\//)
 
-    @Override
-    void populate(Record record) {
-        def body = record.body
+    static mapping = {
+        runBaseMapping(delegate, it)
+        doi(index: true)
+    }
+
+    boolean acceptRecord(Record record) {
+        boolean hasEzproxyIdAndHost = super.acceptRecord(record)
+
+        if(!hasEzproxyIdAndHost) {
+            return false
+        }
+
         try {
-            record.body.doi = extractDoi(body.url)
+            if (hasDoi(record.body)) {
+                record.body.doi = extractDoi(body.url)
+            }
         }
         catch (Throwable throwable) {
             /*
@@ -46,26 +49,7 @@ class EzDoi extends EzproxyBase {
             log.warn "Could not extract doi from $body.url", throwable
         }
         truncateProperties(record, "doi")
-        super.populate(record)
-    }
-
-    @Override
-    void validate() {
-
-
-        assert notNull(doi) : "doi cannot be null or empty"
-        super.validate()
-    }
-
-    @Override
-    boolean acceptRecord(Record record) {
-        boolean hasEzproxyIdAndHost = super.acceptRecord(record)
-
-        if(!hasEzproxyIdAndHost) {
-            return false
-        }
-
-        return hasDoi(record.body)
+        return record.body.doi != null
     }
 
     @SuppressWarnings("GrMethodMayBeStatic")
@@ -143,10 +127,11 @@ class EzDoi extends EzproxyBase {
 
     @Override
     boolean alreadyExists() {
-        def session = sessionFactory.currentSession
-        def query = session.createQuery("from EzDoi where doi = :doi and ezproxyId = :ezproxyId")
-                .setParameter("doi", doi)
-                .setParameter("ezproxyId", ezproxyId)
-        query.list().size() > 0
+        def answer
+        withTransaction {
+            answer = EzDoi.findByEzproxyIdAndDoi(ezproxyId, doi)
+        }
+
+        return answer != null
     }
 }

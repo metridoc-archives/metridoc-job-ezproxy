@@ -4,8 +4,8 @@ import groovy.util.logging.Slf4j
 import metridoc.core.InjectArgBase
 import metridoc.core.services.CamelService
 import metridoc.core.services.DefaultService
-import metridoc.core.services.HibernateService
-import metridoc.writers.EntityIteratorWriter
+import metridoc.service.gorm.GormService
+import metridoc.tool.gorm.GormIteratorWriter
 import org.apache.camel.util.URISupport
 import org.hibernate.Session
 
@@ -48,14 +48,13 @@ class EzproxyIngestService extends DefaultService {
     protected void setupWriter() {
         ezproxyService.with {
             if (!writer) {
-                writer = new EntityIteratorWriter(recordEntityClass: entityClass)
+                writer = new GormIteratorWriter(gormClass: entityClass)
             }
 
-            if (writer instanceof EntityIteratorWriter && !preview) {
-                def hibernateService = includeService(HibernateService)
-                hibernateService.enableFor(entityClass)
-                writer.sessionFactory = hibernateService.sessionFactory
-                hibernateService.withTransaction { Session session ->
+            if (writer instanceof GormIteratorWriter && !preview) {
+                def gormService = includeService(GormService)
+                gormService.enableFor(entityClass)
+                gormService.withTransaction { Session session ->
                     def url = session.connection().metaData.getURL()
                     log.info "connecting to ${url}"
                 }

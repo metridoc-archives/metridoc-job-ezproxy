@@ -3,8 +3,8 @@ package metridoc.ezproxy.services
 import metridoc.core.services.CamelService
 import metridoc.core.services.ConfigService
 import metridoc.core.services.DefaultService
-import metridoc.core.services.HibernateService
 import metridoc.core.services.ParseArgsService
+import metridoc.service.gorm.GormService
 
 /**
  * Created with IntelliJ IDEA on 9/24/13
@@ -30,7 +30,7 @@ class EzproxyWireService extends DefaultService {
 
     protected EzproxyService wireupNonConfigServices(Class ezproxyIngestClass) {
         if (!preview) {
-            includeService(HibernateService, entityClasses: [ezproxyIngestClass])
+            includeService(GormService, entityClasses: [ezproxyIngestClass])
         }
 
         def camelService = includeService(CamelService)

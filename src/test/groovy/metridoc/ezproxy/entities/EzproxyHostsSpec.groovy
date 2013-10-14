@@ -1,6 +1,5 @@
 package metridoc.ezproxy.entities
 
-import metridoc.ezproxy.entities.EzproxyHosts
 import spock.lang.Specification
 
 /**
@@ -11,14 +10,14 @@ class EzproxyHostsSpec extends Specification {
 
     def "test basic validation"() {
         when: "validate empty payload"
-        new EzproxyHosts().validate()
+        new EzHosts().validate()
 
         then: "lineNumber cannot be null"
         def error = thrown(AssertionError)
         error.message.contains("lineNumber")
 
         when: "lineNumber is there"
-        new EzproxyHosts(lineNumber: 1).validate()
+        new EzHosts(lineNumber: 1).validate()
 
         then: "fileName cannot be null"
         error = thrown(AssertionError)
