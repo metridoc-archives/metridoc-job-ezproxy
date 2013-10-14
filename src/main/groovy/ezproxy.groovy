@@ -1,6 +1,6 @@
 import metridoc.core.services.ConfigService
 import metridoc.ezproxy.entities.EzDoi
-import metridoc.ezproxy.entities.EzproxyHosts
+import metridoc.ezproxy.entities.EzHosts
 import metridoc.ezproxy.services.EzproxyDropTableService
 import metridoc.ezproxy.services.EzproxyService
 import metridoc.ezproxy.services.EzproxyWireService
@@ -23,7 +23,7 @@ if (!commands.contains(command)) {
 switch (command) {
     case "processHosts":
         println "processing hosts"
-        ingestFor(EzproxyHosts)
+        ingestFor(EzHosts)
         return
     case "processDois":
         println "processing dois"

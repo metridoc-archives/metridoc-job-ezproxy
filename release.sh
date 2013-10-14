@@ -48,3 +48,8 @@ echo ""
 
 systemCall "git tag -a v${PROJECT_VERSION} -m 'tagging release'"
 systemCall "git push origin v${PROJECT_VERSION}"
+
+systemCall "./gradlew bumpVersion"
+systemCall "git add VERSION"
+systemCall "git commit -m 'committing a new version'"
+systemCall "git push origin master"
