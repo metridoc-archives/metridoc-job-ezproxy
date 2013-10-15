@@ -44,4 +44,33 @@ class EzDoiSpec extends Specification {
         error.message.contains("error on field [doi] with error code [nullable]")
     }
 
+    void "test alreadyExists"() {
+        given:
+        def gormService = new GormService(embeddedDataSource: true)
+        gormService.init()
+        gormService.enableFor(EzDoi)
+        EzDoi.withTransaction {
+            new EzDoi(
+                    doi:"foo",
+                    ezproxyId: "bar",
+                    fileName: "foobar",
+                    lineNumber: 1,
+                    proxyDate: new Date(),
+                    proxyDay: 1,
+                    proxyMonth: 1,
+                    proxyYear: 2012,
+                    urlHost: "http://foo.com"
+            ).save(failOnError: true)
+        }
+
+        when:
+        boolean exists = new EzDoi(
+                doi: "foo",
+                ezproxyId: "bar"
+        ).alreadyExists()
+
+        then:
+        noExceptionThrown()
+        exists
+    }
 }

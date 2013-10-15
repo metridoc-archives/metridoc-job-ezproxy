@@ -126,11 +126,12 @@ class EzDoi extends EzproxyBase {
         return "${ezproxyId}_#_${doi}"
     }
 
+    @SuppressWarnings("UnnecessaryQualifiedReference")
     @Override
     boolean alreadyExists() {
         def answer
         withTransaction {
-            answer = findByEzproxyIdAndDoi(ezproxyId, doi)
+            answer = EzDoi.findByEzproxyIdAndDoi(ezproxyId, doi)
         }
 
         return answer != null
