@@ -23,8 +23,10 @@ class TruncateUtils {
     }
 
     static String truncate(String value, int length) {
-        if(value.size() > length) {
-            return value.substring(0, length)
+        if (value) {
+            if(value.size() > length) {
+                return value.substring(0, length)
+            }
         }
 
         return value

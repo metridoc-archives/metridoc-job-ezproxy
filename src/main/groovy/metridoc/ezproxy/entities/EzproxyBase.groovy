@@ -61,11 +61,15 @@ abstract class EzproxyBase {
             naturalKeyCache = cache
         }
 
+        boolean result = record.body.ezproxyId &&
+                record.body.urlHost
+
+        if(!result) return false
+
         truncateProperties(record, "ezproxyId", "fileName", "urlHost")
         addDateValues(record.body)
 
-        record.body.ezproxyId &&
-                record.body.urlHost
+        return result
     }
 
     protected void addDateValues(Map record) {
