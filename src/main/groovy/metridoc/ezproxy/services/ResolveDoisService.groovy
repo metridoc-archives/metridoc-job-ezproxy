@@ -1,11 +1,11 @@
 package metridoc.ezproxy.services
 
 import metridoc.core.InjectArgBase
-import metridoc.core.services.HibernateService
 import metridoc.core.services.RunnableService
 import metridoc.ezproxy.entities.EzDoi
 import metridoc.ezproxy.entities.EzDoiJournal
 import metridoc.ezproxy.utils.TruncateUtils
+import metridoc.service.gorm.GormService
 import org.hibernate.Session
 
 /**
@@ -18,13 +18,12 @@ class ResolveDoisService extends RunnableService {
     int doiResolutionCount = 2000
 
     void resolveDois() {
-        def hibernateService = includeService(entityClasses: [EzDoiJournal, EzDoi], HibernateService)
+        def gormService = includeService(entityClasses: [EzDoiJournal, EzDoi], GormService)
 
-        hibernateService.withTransaction { Session session ->
+        gormService.withTransaction { Session session ->
 
-            def q = session.createQuery("from EzDoi where processedDoi = false")
-            q.setMaxResults(doiResolutionCount)
-            def ezDois = q.list()
+            List ezDois = EzDoi.findAllByProcessedDoi(maxSize: doiResolutionCount, false)
+
             if (ezDois) {
                 println "processing ${ezDois.size()} dois"
             }
@@ -47,18 +46,17 @@ class ResolveDoisService extends RunnableService {
                 }
 
                 else {
-                    q = session.createQuery("from EzDoiJournal where doi = '${response.doi}'")
-                    if(q.list()) {
+                    EzDoiJournal journal = EzDoiJournal.findByDoi(response.doi)
+                    if(journal) {
                         println "doi ${response.doi} has already been processed"
                         return
                     }
                     def ezJournal = new EzDoiJournal()
                     ezJournal.properties.findAll {
                         it.key != "id" &&
-                                it.key != "version" &&
-                                it.key != "class"
+                        it.key != "version" &&
+                        it.key != "class"
                     }.each { key, value ->
-
                         def chosenValue = response."$key"
                         if (chosenValue instanceof String) {
                             chosenValue = TruncateUtils.truncate(chosenValue, TruncateUtils.DEFAULT_VARCHAR_LENGTH)
@@ -66,11 +64,11 @@ class ResolveDoisService extends RunnableService {
 
                         ezJournal."$key" = chosenValue
                     }
-                    session.save(ezJournal)
+                    ezJournal.save(failOnError: true)
                 }
 
                 ezDoi.processedDoi = true
-                session.save(ezDoi)
+                ezDoi.save(failOnError: true)
             }
         }
     }

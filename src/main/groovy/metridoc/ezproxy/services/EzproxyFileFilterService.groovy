@@ -3,11 +3,9 @@ package metridoc.ezproxy.services
 import groovy.util.logging.Slf4j
 import metridoc.core.InjectArg
 import metridoc.core.InjectArgBase
-import metridoc.core.services.HibernateService
+import metridoc.service.gorm.GormService
 import org.apache.camel.component.file.GenericFile
 import org.apache.camel.component.file.GenericFileFilter
-import org.hibernate.Query
-import org.hibernate.Session
 
 /**
  * @author Tommy Barker
@@ -22,7 +20,7 @@ class EzproxyFileFilterService implements GenericFileFilter {
     @InjectArg(ignore = true)
     Class entityClass
 
-    HibernateService hibernateService
+    GormService gormService
 
     @Override
     boolean accept(GenericFile file) {
@@ -33,16 +31,14 @@ class EzproxyFileFilterService implements GenericFileFilter {
 
             if(preview) return true
 
-            assert entityClass && hibernateService : "entityClass and hibernateService must not be null"
+            assert entityClass && gormService : "entityClass and gormService must not be null"
 
-            def result
-            hibernateService.withTransaction {Session session ->
-                Query query = session.createQuery("from ${entityClass.simpleName} where fileName = :fileName")
-                        .setParameter("fileName", file.fileNameOnly)
-                result = query.list()
+            List result
+            gormService.withTransaction {
+                result = entityClass.findAllByFileName(file.fileName)
             }
 
-            return result.size() ==  0
+            return result ==  null || result.size() == 0
         }
         catch (Throwable throwable) {
             if(stacktrace) {
