@@ -35,9 +35,10 @@ class EzDoi extends EzproxyBase {
             return false
         }
 
+        def body = record.body
         try {
-            if (hasDoi(record.body)) {
-                record.body.doi = extractDoi(body.url)
+            if (hasDoi(body)) {
+                body.doi = extractDoi(body.url)
             }
         }
         catch (Throwable throwable) {
@@ -49,7 +50,7 @@ class EzDoi extends EzproxyBase {
             log.warn "Could not extract doi from $body.url", throwable
         }
         truncateProperties(record, "doi")
-        return record.body.doi != null
+        return body.doi != null
     }
 
     @SuppressWarnings("GrMethodMayBeStatic")
@@ -129,7 +130,7 @@ class EzDoi extends EzproxyBase {
     boolean alreadyExists() {
         def answer
         withTransaction {
-            answer = EzDoi.findByEzproxyIdAndDoi(ezproxyId, doi)
+            answer = findByEzproxyIdAndDoi(ezproxyId, doi)
         }
 
         return answer != null
