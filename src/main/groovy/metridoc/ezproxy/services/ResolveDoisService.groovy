@@ -57,23 +57,32 @@ class ResolveDoisService extends RunnableService {
                         return
                     }
                     def ezJournal = new EzDoiJournal()
-                    ezJournal.properties.findAll {
-                        it.key != "id" &&
-                        it.key != "version" &&
-                        it.key != "class"
-                    }.each { key, value ->
-                        def chosenValue = response."$key"
-                        if (chosenValue instanceof String) {
-                            chosenValue = TruncateUtils.truncate(chosenValue, TruncateUtils.DEFAULT_VARCHAR_LENGTH)
-                        }
 
-                        ezJournal."$key" = chosenValue
-                    }
+                    ingestResponse(ezJournal, response)
+
                     ezJournal.save(failOnError: true)
                 }
 
                 ezDoi.processedDoi = true
                 ezDoi.save(failOnError: true)
+            }
+        }
+    }
+
+    static ingestResponse(EzDoiJournal ezDoiJournal, CrossRefResponse crossRefResponse) {
+        crossRefResponse.properties.each {key, value ->
+            if (key != "loginFailure"
+                    && key != "class"
+                    && key!= "status"
+                    && key != "malformedDoi"
+                    && key != "unresolved") {
+
+                def chosenValue = crossRefResponse."$key"
+                if (chosenValue instanceof String) {
+                    chosenValue = TruncateUtils.truncate(chosenValue, TruncateUtils.DEFAULT_VARCHAR_LENGTH)
+                }
+
+                ezDoiJournal."$key" = chosenValue
             }
         }
     }
