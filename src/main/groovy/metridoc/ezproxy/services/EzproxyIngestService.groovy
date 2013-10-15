@@ -3,6 +3,7 @@ package metridoc.ezproxy.services
 import groovy.util.logging.Slf4j
 import metridoc.core.InjectArgBase
 import metridoc.core.services.CamelService
+import metridoc.core.services.DataSourceService
 import metridoc.core.services.DefaultService
 import metridoc.service.gorm.GormService
 import metridoc.tool.gorm.GormIteratorWriter
@@ -52,9 +53,16 @@ class EzproxyIngestService extends DefaultService {
             }
 
             if (writer instanceof GormIteratorWriter && !preview) {
-                def gormService = includeService(GormService)
-                gormService.enableFor(entityClass)
-                gormService.withTransaction { Session session ->
+                DataSourceService gormService = includeService(GormService)
+
+                try {
+                    gormService.enableFor(entityClass)
+                }
+                catch (IllegalStateException ignored) {
+                    //do nothing, already enabled
+                }
+
+                entityClass.withNewSession { Session session ->
                     def url = session.connection().metaData.getURL()
                     log.info "connecting to ${url}"
                 }
@@ -93,7 +101,7 @@ class EzproxyIngestService extends DefaultService {
                     closure.call(ezproxyService.file)
                 }
             }
-            assert atLeastOneFileProcessed : "waited $wait milliseconds without success to consume a file from $sanitizedUrl, is the url correct?  If a remote url, are the connection parameters correct?"
+            assert atLeastOneFileProcessed: "waited $wait milliseconds without success to consume a file from $sanitizedUrl, is the url correct?  If a remote url, are the connection parameters correct?"
         }
     }
 
