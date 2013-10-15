@@ -1,6 +1,6 @@
 package metridoc.ezproxy.entities
 
-import metridoc.ezproxy.entities.EzproxyHosts
+import metridoc.service.gorm.GormService
 import spock.lang.Specification
 
 /**
@@ -9,23 +9,35 @@ import spock.lang.Specification
  */
 class EzproxyHostsSpec extends Specification {
 
-    def "test basic validation"() {
-        when: "validate empty payload"
-        new EzproxyHosts().validate()
+    GormService service
 
-        then: "lineNumber cannot be null"
-        def error = thrown(AssertionError)
-        error.message.contains("lineNumber")
-
-        when: "lineNumber is there"
-        new EzproxyHosts(lineNumber: 1).validate()
-
-        then: "fileName cannot be null"
-        error = thrown(AssertionError)
-        error.message.contains("fileName")
+    def setup() {
+        service = new GormService(embeddedDataSource: true)
+        service.init()
+        service.enableFor(EzHosts)
     }
 
-    def "test truncation"() {
-        given: "EzproxyHost with some data"
+    def "test basic validation"() {
+        when: "validate empty payload"
+        EzHosts hosts
+        boolean valid
+        EzHosts.withTransaction {
+            hosts = new EzHosts()
+            valid = hosts.validate()
+        }
+
+        then: "lineNumber cannot be null"
+        !valid
+        "nullable" == hosts.errors.getFieldError("lineNumber").code
+
+        when: "lineNumber is there"
+        EzHosts.withTransaction {
+            hosts = new EzHosts(lineNumber: 1)
+            valid = hosts.validate()
+        }
+
+        then: "fileName cannot be null"
+        !valid
+        "nullable" == hosts.errors.getFieldError("fileName").code
     }
 }

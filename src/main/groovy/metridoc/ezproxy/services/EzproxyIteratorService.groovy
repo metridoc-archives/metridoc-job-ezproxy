@@ -3,7 +3,6 @@ package metridoc.ezproxy.services
 import groovy.util.logging.Slf4j
 import metridoc.core.InjectArg
 import metridoc.core.InjectArgBase
-import metridoc.core.tools.Tool
 import metridoc.iterators.FileIterator
 import metridoc.iterators.Record
 import metridoc.utils.ApacheLogParser
