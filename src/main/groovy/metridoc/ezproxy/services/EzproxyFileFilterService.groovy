@@ -34,7 +34,7 @@ class EzproxyFileFilterService implements GenericFileFilter {
             assert entityClass && gormService : "entityClass and gormService must not be null"
 
             List result
-            gormService.withTransaction {
+            entityClass.withTransaction {
                 result = entityClass.findAllByFileName(file.fileName)
             }
 
