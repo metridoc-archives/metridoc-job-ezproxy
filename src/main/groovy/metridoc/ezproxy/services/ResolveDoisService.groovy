@@ -18,11 +18,17 @@ class ResolveDoisService extends RunnableService {
     int doiResolutionCount = 2000
 
     void resolveDois() {
-        def gormService = includeService(entityClasses: [EzDoiJournal, EzDoi], GormService)
+        def gormService = includeService(GormService)
+        try {
+            gormService.enableFor(EzDoiJournal, EzDoi)
+        }
+        catch (IllegalStateException ignore) {
+            //in case we already enabled the classes
+        }
 
-        gormService.withTransaction { Session session ->
+        EzDoi.withTransaction { Session session ->
 
-            List ezDois = EzDoi.findAllByProcessedDoi(maxSize: doiResolutionCount, false)
+            List ezDois = EzDoi.findAllByProcessedDoi(false, [max: doiResolutionCount])
 
             if (ezDois) {
                 println "processing ${ezDois.size()} dois"
