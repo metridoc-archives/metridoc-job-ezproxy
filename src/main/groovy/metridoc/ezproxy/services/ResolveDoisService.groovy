@@ -60,7 +60,7 @@ class ResolveDoisService extends RunnableService {
 
                     ingestResponse(ezJournal, response)
 
-                    ezJournal.save(failOnError: true)
+                    ezJournal.save(failOnError: true, flush: true)
                 }
 
                 ezDoi.processedDoi = true
