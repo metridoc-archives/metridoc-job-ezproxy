@@ -30,7 +30,7 @@ class EzproxyWireService extends DefaultService {
 
     protected EzproxyService wireupNonConfigServices(Class ezproxyIngestClass) {
         if (!preview) {
-            includeService(GormService, entityClasses: [ezproxyIngestClass])
+            includeService(GormService).enableGormFor(ezproxyIngestClass)
         }
 
         def camelService = includeService(CamelService)
