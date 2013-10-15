@@ -1,6 +1,7 @@
 package metridoc.ezproxy.entities
 
 import grails.persistence.Entity
+import groovy.util.logging.Slf4j
 import metridoc.iterators.Record
 
 import static metridoc.ezproxy.utils.TruncateUtils.truncateProperties
@@ -10,6 +11,7 @@ import static metridoc.ezproxy.utils.TruncateUtils.truncateProperties
  * @author Tommy Barker
  */
 @Entity
+@Slf4j
 class EzHosts extends EzproxyBase {
 
     String patronId
@@ -21,9 +23,18 @@ class EzHosts extends EzproxyBase {
     String state
     String city
 
+
     static constraints = {
         runBaseConstraints(delegate, it)
         urlHost (unique: "ezproxyId")
+        patronId(nullable: true)
+        ipAddress(nullable: true)
+        department(nullable: true)
+        rank(nullable: true)
+        country(nullable: true)
+        state(nullable: true)
+        city(nullable: true)
+        organization(nullable: true)
     }
 
     @Override
@@ -51,6 +62,7 @@ class EzHosts extends EzproxyBase {
     boolean alreadyExists() {
         def answer
         withTransaction {
+            log.debug "checking for {} and {} for EzHosts", ezproxyId, urlHost
             answer = EzHosts.findByEzproxyIdAndUrlHost(ezproxyId, urlHost) != null
         }
 

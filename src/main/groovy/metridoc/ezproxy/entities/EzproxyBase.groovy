@@ -1,6 +1,7 @@
 package metridoc.ezproxy.entities
 
-import grails.persistence.Entity
+import com.sun.xml.internal.ws.util.StringUtils
+import groovy.util.logging.Slf4j
 import metridoc.iterators.Record
 import metridoc.utils.ApacheLogParser
 import org.slf4j.LoggerFactory
@@ -11,6 +12,7 @@ import static metridoc.ezproxy.utils.TruncateUtils.truncateProperties
  * Created with IntelliJ IDEA on 7/2/13
  * @author Tommy Barker
  */
+@Slf4j
 abstract class EzproxyBase {
     public static final transient NATURAL_KEY_CACHE = "naturalKeyCache"
     Date proxyDate
@@ -23,7 +25,7 @@ abstract class EzproxyBase {
     Integer lineNumber
     Set<String> naturalKeyCache = []
 
-    static transients = ['naturalKeyCache']
+    static transients = ['naturalKeyCache', 'fieldsToLoad']
 
     static constraints = {
         ezproxyId(maxSize: 50)
@@ -51,8 +53,9 @@ abstract class EzproxyBase {
     }
 
     boolean acceptRecord(Record record) {
+        log.debug  "checking to accept record {}", record
         def cache = record.getHeader(NATURAL_KEY_CACHE, Set)
-        if(cache) {
+        if (cache) {
             naturalKeyCache = cache
         }
         else {
@@ -64,12 +67,31 @@ abstract class EzproxyBase {
         boolean result = record.body.ezproxyId &&
                 record.body.urlHost
 
-        if(!result) return false
+        if (!result) {
+            log.debug "record {} was rejected", record
+            return false
+        }
 
         truncateProperties(record, "ezproxyId", "fileName", "urlHost")
         addDateValues(record.body)
 
+        log.debug "record {} was accepted", record
         return result
+    }
+
+    void populate(Record record) {
+        log.debug "populating {}", record
+
+        def dataOfInterest = record.body.findAll {
+            String propertyName = StringUtils.capitalize(it.key)
+            this.metaClass.respondsTo(this, "set${propertyName}", [it.value.getClass()] as Object[])
+        }
+
+        dataOfInterest.each {
+            log.debug "updating property [$it.key] with [$it.value]"
+            this."$it.key" = it.value
+        }
+        log.debug "finished populating {}", record
     }
 
     protected void addDateValues(Map record) {
@@ -111,13 +133,33 @@ abstract class EzproxyBase {
     boolean shouldSave() {
 
         String naturalKey = createNaturalKey()
-        if(naturalKeyCache.add(naturalKey)) {
-            return !alreadyExists()
+        if (naturalKeyCache.add(naturalKey)) {
+            def doesNotExist = !alreadyExists()
+            if (doesNotExist) {
+                log.debug "validating [{}]", this
+                if (!this.validate()) {
+                    log.debug "[$this] is invalid"
+                    if (this.errors.fieldErrorCount) {
+                        def message = "error on field [${this.errors.fieldError.field}] with error code [${this.errors.fieldError.code}]"
+                        throw new AssertionError(message)
+                    }
+                    else {
+                        throw new RuntimeException("unknown error occurred \n ${this.errors}")
+                    }
+                }
+                log.debug "[{}] will be saved", naturalKey
+            } else {
+                log.debug "[{}] will not be saved", naturalKey
+            }
+
+            return doesNotExist
         }
 
+        log.debug "[{}] is already in the cache, will not save", naturalKey
         return false
     }
 
     abstract String createNaturalKey()
+
     abstract boolean alreadyExists()
 }
