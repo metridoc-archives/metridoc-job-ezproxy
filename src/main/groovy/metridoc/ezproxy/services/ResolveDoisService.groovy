@@ -1,5 +1,6 @@
 package metridoc.ezproxy.services
 
+import groovy.util.logging.Slf4j
 import metridoc.core.InjectArgBase
 import metridoc.core.services.RunnableService
 import metridoc.ezproxy.entities.EzDoi
@@ -12,6 +13,7 @@ import metridoc.service.gorm.GormService
  * @author Tommy Barker
  */
 @InjectArgBase("ezproxy")
+@Slf4j
 class ResolveDoisService extends RunnableService {
 
     public static final int BATCH_COUNT = 50
@@ -34,37 +36,30 @@ class ResolveDoisService extends RunnableService {
                 List ezDois = EzDoi.findAllByProcessedDoi(false, [max: BATCH_COUNT])
 
                 if (ezDois) {
-                    println "processing a batch of [${ezDois.size()}] dois"
+                    log.info "processing a batch of [${ezDois.size()}] dois"
                 }
                 else {
-                    println "there are no more dois to process"
+                    log.info "there are no more dois to process"
                 }
 
                 CrossRefService crossRefTool = includeService(CrossRefService)
-                int counter = 0
                 ezDois.each { EzDoi ezDoi ->
-                    counter++
-                    if (counter % 100 == 0) {
-                        println "processed $counter records"
-                    }
                     def response = crossRefTool.resolveDoi(ezDoi.doi)
                     assert !response.loginFailure: "Could not login into cross ref"
                     if (response.malformedDoi || response.unresolved) {
                         ezDoi.resolvableDoi = false
-                        println "Could not resolve doi $ezDoi.doi, it was either malformed or unresolvable"
+                        log.info "Could not resolve doi $ezDoi.doi, it was either malformed or unresolvable"
                     }
 
                     else {
                         EzDoiJournal journal = EzDoiJournal.findByDoi(response.doi)
                         if(journal) {
-                            println "doi ${response.doi} has already been processed"
-                            return
+                            log.info "doi ${response.doi} has already been processed"
+                        } else {
+                            def ezJournal = new EzDoiJournal()
+                            ingestResponse(ezJournal, response)
+                            ezJournal.save(failOnError: true, flush: true)
                         }
-                        def ezJournal = new EzDoiJournal()
-
-                        ingestResponse(ezJournal, response)
-
-                        ezJournal.save(failOnError: true, flush: true)
                     }
 
                     ezDoi.processedDoi = true
