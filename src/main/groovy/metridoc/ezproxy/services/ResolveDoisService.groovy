@@ -14,6 +14,7 @@ import metridoc.service.gorm.GormService
 @InjectArgBase("ezproxy")
 class ResolveDoisService extends RunnableService {
 
+    public static final int BATCH_COUNT = 50
     int doiResolutionCount = 2000
 
     void resolveDois() {
@@ -25,49 +26,55 @@ class ResolveDoisService extends RunnableService {
             //in case we already enabled the classes
         }
 
-        EzDoi.withTransaction {
+        int batchCount = doiResolutionCount / BATCH_COUNT
 
-            List ezDois = EzDoi.findAllByProcessedDoi(false, [max: doiResolutionCount])
+        (1..batchCount).each {
+            EzDoi.withTransaction {
 
-            if (ezDois) {
-                println "processing ${ezDois.size()} dois"
-            }
-            else {
-                println "there are no dois to process"
-            }
+                List ezDois = EzDoi.findAllByProcessedDoi(false, [max: BATCH_COUNT])
 
-            CrossRefService crossRefTool = includeService(CrossRefService)
-            int counter = 0
-            ezDois.each { EzDoi ezDoi ->
-                counter++
-                if (counter % 100 == 0) {
-                    println "processed $counter records"
+                if (ezDois) {
+                    println "processing a batch of [${ezDois.size()}] dois"
                 }
-                def response = crossRefTool.resolveDoi(ezDoi.doi)
-                assert !response.loginFailure: "Could not login into cross ref"
-                if (response.malformedDoi || response.unresolved) {
-                    ezDoi.resolvableDoi = false
-                    println "Could not resolve doi $ezDoi.doi, it was either malformed or unresolvable"
-                }
-
                 else {
-                    EzDoiJournal journal = EzDoiJournal.findByDoi(response.doi)
-                    if(journal) {
-                        println "doi ${response.doi} has already been processed"
-                        return
-                    }
-                    def ezJournal = new EzDoiJournal()
-
-                    ingestResponse(ezJournal, response)
-
-                    ezJournal.save(failOnError: true, flush: true)
+                    println "there are no more dois to process"
                 }
 
-                ezDoi.processedDoi = true
-                ezDoi.save(failOnError: true)
+                CrossRefService crossRefTool = includeService(CrossRefService)
+                int counter = 0
+                ezDois.each { EzDoi ezDoi ->
+                    counter++
+                    if (counter % 100 == 0) {
+                        println "processed $counter records"
+                    }
+                    def response = crossRefTool.resolveDoi(ezDoi.doi)
+                    assert !response.loginFailure: "Could not login into cross ref"
+                    if (response.malformedDoi || response.unresolved) {
+                        ezDoi.resolvableDoi = false
+                        println "Could not resolve doi $ezDoi.doi, it was either malformed or unresolvable"
+                    }
+
+                    else {
+                        EzDoiJournal journal = EzDoiJournal.findByDoi(response.doi)
+                        if(journal) {
+                            println "doi ${response.doi} has already been processed"
+                            return
+                        }
+                        def ezJournal = new EzDoiJournal()
+
+                        ingestResponse(ezJournal, response)
+
+                        ezJournal.save(failOnError: true, flush: true)
+                    }
+
+                    ezDoi.processedDoi = true
+                    ezDoi.save(failOnError: true)
+                }
             }
         }
     }
+
+
 
     static ingestResponse(EzDoiJournal ezDoiJournal, CrossRefResponse crossRefResponse) {
         crossRefResponse.properties.each {key, value ->
