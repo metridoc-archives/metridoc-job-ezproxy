@@ -6,7 +6,6 @@ import metridoc.ezproxy.entities.EzDoi
 import metridoc.ezproxy.entities.EzDoiJournal
 import metridoc.ezproxy.utils.TruncateUtils
 import metridoc.service.gorm.GormService
-import org.hibernate.Session
 
 /**
  * Created with IntelliJ IDEA on 9/24/13
@@ -26,7 +25,7 @@ class ResolveDoisService extends RunnableService {
             //in case we already enabled the classes
         }
 
-        EzDoi.withTransaction { Session session ->
+        EzDoi.withTransaction {
 
             List ezDois = EzDoi.findAllByProcessedDoi(false, [max: doiResolutionCount])
 
