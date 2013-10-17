@@ -35,7 +35,7 @@ class ResolveDoisService extends RunnableService {
                 log.info "processing a batch of [${ezDois.size()}] dois"
             }
             else {
-                log.info "there are no more dois to process"
+                log.info "there are no dois to process"
                 return
             }
 
