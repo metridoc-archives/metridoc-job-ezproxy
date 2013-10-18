@@ -54,6 +54,8 @@ class CrossRefService extends DefaultTool {
         }
 
         processCrossRefXml(responseText, response)
+
+        return response
     }
 
     protected String getResponseText(URL url) {
