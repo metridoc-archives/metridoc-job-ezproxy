@@ -8,6 +8,7 @@ class CrossRefResponse {
     boolean loginFailure = false
     boolean malformedDoi = false
     boolean unresolved = false
+    CrossRefResponseException statusException
     String status
     String doi
     String articleTitle

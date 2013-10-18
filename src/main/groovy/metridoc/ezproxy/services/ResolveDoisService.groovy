@@ -17,6 +17,7 @@ import metridoc.service.gorm.GormService
 class ResolveDoisService extends RunnableService {
 
     int doiResolutionCount = 2000
+    boolean stacktrace = false
 
     void resolveDois() {
         def gormService = includeService(GormService)
@@ -42,23 +43,7 @@ class ResolveDoisService extends RunnableService {
             CrossRefService crossRefTool = includeService(CrossRefService)
             ezDois.each { EzDoi ezDoi ->
                 def response = crossRefTool.resolveDoi(ezDoi.doi)
-                assert !response.loginFailure: "Could not login into cross ref"
-                if (response.malformedDoi || response.unresolved) {
-                    ezDoi.resolvableDoi = false
-                    log.info "Could not resolve doi $ezDoi.doi, it was either malformed or unresolvable"
-                }
-
-                else {
-                    EzDoiJournal journal = EzDoiJournal.findByDoi(response.doi)
-                    if (journal) {
-                        log.info "doi ${response.doi} has already been processed"
-                    }
-                    else {
-                        def ezJournal = new EzDoiJournal()
-                        ingestResponse(ezJournal, response)
-                        ezJournal.save(failOnError: true, flush: true)
-                    }
-                }
+                processResponse(response, ezDoi)
 
                 ezDoi.processedDoi = true
                 ezDoi.save(failOnError: true)
@@ -66,7 +51,38 @@ class ResolveDoisService extends RunnableService {
         }
     }
 
+    protected void processResponse(CrossRefResponse response, EzDoi ezDoi) {
+        assert !response.loginFailure: "Could not login into cross ref"
+        if (response.malformedDoi || response.unresolved) {
+            ezDoi.resolvableDoi = false
+            log.info "Could not resolve doi $ezDoi.doi, it was either malformed or unresolvable"
+        }
+        else if (response.statusException) {
+            String message = "An exception occurred trying to resolve doi [$ezDoi.doi]"
+            logWarning(message, response.statusException)
+            ezDoi.resolvableDoi = false
+        }
+        else {
+            EzDoiJournal journal = EzDoiJournal.findByDoi(response.doi)
+            if (journal) {
+                log.info "doi ${response.doi} has already been processed"
+            }
+            else {
+                def ezJournal = new EzDoiJournal()
+                ingestResponse(ezJournal, response)
+                ezJournal.save(failOnError: true, flush: true)
+            }
+        }
+    }
 
+    protected void logWarning(String message, Exception statusException) {
+        if (stacktrace) {
+            log.warn message, statusException
+        }
+        else {
+            log.warn "{}: {}", message, statusException.message
+        }
+    }
 
     static ingestResponse(EzDoiJournal ezDoiJournal, CrossRefResponse crossRefResponse) {
         crossRefResponse.properties.each { key, value ->
@@ -74,6 +90,7 @@ class ResolveDoisService extends RunnableService {
                     && key != "class"
                     && key != "status"
                     && key != "malformedDoi"
+                    && key != "statusException"
                     && key != "unresolved") {
 
                 def chosenValue = crossRefResponse."$key"
