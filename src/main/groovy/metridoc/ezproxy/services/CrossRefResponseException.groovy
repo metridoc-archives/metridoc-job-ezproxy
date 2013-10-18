@@ -8,8 +8,9 @@ class CrossRefResponseException extends Exception {
     int statusCode
     URL url
 
-    CrossRefResponseException(int statusCode) {
+    CrossRefResponseException(int statusCode, URL url) {
         this.statusCode = statusCode
+        this.url = url
     }
 
     @Override

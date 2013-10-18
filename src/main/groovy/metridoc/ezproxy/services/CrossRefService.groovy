@@ -66,7 +66,7 @@ class CrossRefService extends DefaultTool {
             int code = http.getResponseCode();
 
             if(code < 200 || code >= 300) {
-                throw new CrossRefResponseException(code)
+                throw new CrossRefResponseException(code, url)
             }
 
             return url.getText(ENCODING)

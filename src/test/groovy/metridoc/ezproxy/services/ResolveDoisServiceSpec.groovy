@@ -36,7 +36,7 @@ class ResolveDoisServiceSpec extends Specification{
         EzDoi ezDoi = new EzDoi(doi: "foo")
         service.processResponse(
                 new CrossRefResponse(
-                        statusException: new CrossRefResponseException(400)
+                        statusException: new CrossRefResponseException(400, new URL("http://foo.bar"))
                 ),
                 ezDoi
         )
