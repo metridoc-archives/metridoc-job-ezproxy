@@ -1,6 +1,8 @@
 package metridoc.ezproxy.services
 
+import metridoc.ezproxy.entities.EzDoi
 import metridoc.ezproxy.entities.EzDoiJournal
+import org.slf4j.impl.SimpleLogger
 import spock.lang.Specification
 
 /**
@@ -26,5 +28,20 @@ class ResolveDoisServiceSpec extends Specification{
         1 == instance.printYear
         "foo" == instance.issue
         50 == instance.onlineYear
+    }
+
+    void "test process response on CrossRefResponseException"() {
+        when:
+        ResolveDoisService service = new ResolveDoisService()
+        EzDoi ezDoi = new EzDoi(doi: "foo")
+        service.processResponse(
+                new CrossRefResponse(
+                        statusException: new CrossRefResponseException(400)
+                ),
+                ezDoi
+        )
+
+        then:
+        !ezDoi.resolvableDoi
     }
 }

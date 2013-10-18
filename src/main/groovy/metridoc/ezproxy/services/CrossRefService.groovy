@@ -29,9 +29,20 @@ class CrossRefService extends DefaultTool {
 
         assert crossRefUsername && crossRefPassword: "cross ref credentials need to be set to resolve doi $doi"
         def url = createCrossRefUrl(crossRefUsername, crossRefPassword, doi)
-        response = new CrossRefResponse(doi: doi)
+
+        return getResponse(doi, url)
+    }
+
+    protected CrossRefResponse getResponse(String doi, URL url) {
+        CrossRefResponse response = new CrossRefResponse(doi: doi)
         def responseText
-        responseText = url.getText(ENCODING)
+        try {
+            responseText = getResponseText(url)
+        }
+        catch (CrossRefResponseException e) {
+            response.statusException = e
+            return response
+        }
         if (responseText.contains("The login you supplied is not recognized")) {
             response.loginFailure = true
             return response
@@ -43,12 +54,38 @@ class CrossRefService extends DefaultTool {
         }
 
         processCrossRefXml(responseText, response)
-
-
-        return response
     }
 
-    protected void processCrossRefXml(String responseText, response) {
+    protected String getResponseText(URL url) {
+        HttpURLConnection http
+
+        try {
+            http = getConnection(url);
+            int code = http.getResponseCode();
+
+            if(code < 200 || code >= 300) {
+                throw new CrossRefResponseException(code)
+            }
+
+            return url.getText(ENCODING)
+        }
+        finally {
+            if(http) {
+                try {
+                    http.disconnect()
+                }
+                catch (Throwable ignored) {
+                    //do nothing
+                }
+            }
+        }
+    }
+
+    protected HttpURLConnection getConnection(URL url) {
+        url.openConnection() as HttpURLConnection
+    }
+
+    protected static void processCrossRefXml(String responseText, response) {
         def result = parseXml(responseText)
         def status = result.status
         if (status == 'resolved') {
