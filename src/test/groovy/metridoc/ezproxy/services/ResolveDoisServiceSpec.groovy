@@ -22,7 +22,7 @@ class ResolveDoisServiceSpec extends Specification{
         def instance = new EzDoiJournal()
 
         when:
-        ResolveDoisService.ingestResponse(instance, response)
+        new ResolveDoisService().ingestResponse(instance, response)
 
         then:
         1 == instance.printYear
@@ -43,5 +43,32 @@ class ResolveDoisServiceSpec extends Specification{
 
         then:
         !ezDoi.resolvableDoi
+    }
+
+    void "test convert to BMP (ie all 4byte unicode to 3byte unicode"() {
+        given:
+        def nonBMPText = "Whole mouse blood microRNA as biomarkers for exposure to 𝛄-rays and56Fe ions"
+
+        when:
+        def result = new ResolveDoisService().convertToBMP(nonBMPText)
+
+        then:
+        result.contains("_?_-rays")
+
+        when:
+        def response = new CrossRefResponse(articleTitle: nonBMPText)
+        def journal = new EzDoiJournal()
+        new ResolveDoisService().ingestResponse(journal, response)
+
+        then:
+        journal.articleTitle.contains("_?_-rays")
+
+        when:
+        response = new CrossRefResponse(articleTitle: nonBMPText)
+        journal = new EzDoiJournal()
+        new ResolveDoisService(use4byte: true).ingestResponse(journal, response)
+
+        then:
+        !journal.articleTitle.contains("_?_-rays")
     }
 }

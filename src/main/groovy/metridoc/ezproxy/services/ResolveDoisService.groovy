@@ -18,6 +18,8 @@ class ResolveDoisService extends RunnableService {
 
     int doiResolutionCount = 2000
     boolean stacktrace = false
+    boolean use4byte = false
+    String fourByteReplacement = "_?_"
 
     void resolveDois() {
         def gormService = includeService(GormService)
@@ -97,7 +99,7 @@ class ResolveDoisService extends RunnableService {
         }
     }
 
-    static ingestResponse(EzDoiJournal ezDoiJournal, CrossRefResponse crossRefResponse) {
+    protected void ingestResponse(EzDoiJournal ezDoiJournal, CrossRefResponse crossRefResponse) {
         crossRefResponse.properties.each { key, value ->
             if (key != "loginFailure"
                     && key != "class"
@@ -109,6 +111,9 @@ class ResolveDoisService extends RunnableService {
                 def chosenValue = crossRefResponse."$key"
                 if (chosenValue instanceof String) {
                     chosenValue = TruncateUtils.truncate(chosenValue, TruncateUtils.DEFAULT_VARCHAR_LENGTH)
+                    if(key == "articleTitle" || key == "journalTitle") {
+                        chosenValue = use4byte ? chosenValue : convertToBMP(chosenValue as String)
+                    }
                 }
 
                 ezDoiJournal."$key" = chosenValue
@@ -121,5 +126,22 @@ class ResolveDoisService extends RunnableService {
         step(resolveDois: "resolve dois")
 
         setDefaultTarget("resolveDois")
+    }
+
+    /**
+     * got this idea from
+     * http://stackoverflow.com/questions/14981109/checking-utf-8-data-type-3-byte-or-4-byte-unicode/14983652#14983652.
+     * Out of the box utf8 in mysql is only BMP, all 4byte characters, like japanese / chinese characters and math
+     * symbols are not supported.
+     *
+     * @param text
+     */
+    String convertToBMP(String text) {
+        def response = text.replaceAll( "[\\ud800-\\udfff]", fourByteReplacement)
+        if(response.contains("_?_")) {
+            log.warn "text [$text] contains unsupportted characters"
+        }
+
+        return response
     }
 }
