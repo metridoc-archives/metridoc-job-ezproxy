@@ -43,7 +43,20 @@ class ResolveDoisService extends RunnableService {
             CrossRefService crossRefTool = includeService(CrossRefService)
             ezDois.each { EzDoi ezDoi ->
                 def response = crossRefTool.resolveDoi(ezDoi.doi)
-                processResponse(response, ezDoi)
+                try {
+                    processResponse(response, ezDoi)
+                }
+                catch (Throwable throwable) {
+                    log.error """
+                        Could not save doi info for file: $ezDoi.fileName at line: $ezDoi.lineNumber
+
+                        Response from CrossRef:
+                        $response
+
+                        error will be thrown now to stop ingestion
+                    """
+                    throw throwable
+                }
 
                 ezDoi.processedDoi = true
                 ezDoi.save(failOnError: true)

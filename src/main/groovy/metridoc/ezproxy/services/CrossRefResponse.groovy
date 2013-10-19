@@ -1,9 +1,12 @@
 package metridoc.ezproxy.services
 
+import groovy.transform.ToString
+
 /**
  * Created with IntelliJ IDEA on 10/15/13
  * @author Tommy Barker
  */
+@ToString(ignoreNulls = true, includeNames = true, includePackage = false)
 class CrossRefResponse {
     boolean loginFailure = false
     boolean malformedDoi = false
